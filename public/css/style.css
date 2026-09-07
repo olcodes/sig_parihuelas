@@ -1,0 +1,208 @@
+body {
+    /* Solo fondo y fuente general, sin sobrescribir Bootstrap */
+    font-family: var(--bs-body-font-family, Arial, sans-serif);
+    background-color: #f4f4f4;
+}
+
+footer {
+    background: #35424a;
+    color: #ffffff;
+    text-align: center;
+    padding: 10px 0;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Forzar altura de los combos igual a los textbox grandes */
+select.form-select.form-control-lg {
+    height: 52px !important;
+    min-height: 52px !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    font-size: 1.25rem !important;
+    line-height: 1.5 !important;
+    box-sizing: border-box;
+}
+/* Ajuste para selects normales (sin .form-control-lg) si es necesario */
+select.form-select:not(.form-control-lg) {
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 1rem !important;
+}
+
+/* Textarea comentarios: igual altura que el input cantidad (38px), pero redimensionable vertical */
+textarea#comentarios.form-control {
+    min-height: 38px !important;
+    height: 38px !important;
+    resize: vertical !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    box-sizing: border-box;
+}
+
+/* Estilo global: controles deshabilitados deben mostrarse en gris */
+input[disabled],
+select[disabled],
+textarea[disabled],
+button[disabled],
+.form-control[disabled],
+.btn.disabled,
+.disabled {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+    border-color: #ced4da !important;
+    cursor: not-allowed !important;
+    opacity: 1 !important;
+}
+
+/* Choices.js: cuando el control está deshabilitado vía aria-disabled */
+.choices__inner[aria-disabled="true"],
+.choices__inner[disabled] {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+    border-color: #ced4da !important;
+    cursor: not-allowed !important;
+    opacity: 1 !important;
+}
+
+/* Compatibilidad adicional: Choices.js puede añadir la clase .is-disabled al contenedor .choices */
+.choices.is-disabled .choices__inner,
+.choices.is-disabled .choices__item,
+.choices[aria-disabled="true"] .choices__inner,
+.choices[aria-disabled="true"] .choices__item {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+    border-color: #ced4da !important;
+    cursor: not-allowed !important;
+}
+
+/* Asegurar que los iconos/caret también se vean deshabilitados */
+
+/* Override fuerte para eliminar fondo/blend del caret y toda el área del select */
+select.custom-dropdown[disabled] + .choices,
+select.custom-dropdown[disabled] + .choices .choices__inner,
+select.custom-dropdown[disabled] + .choices .choices__list--single,
+select.custom-dropdown[disabled] + .choices .choices__list--single .choices__item,
+select.custom-dropdown[disabled] + .choices .choices__inner .choices__button,
+select.custom-dropdown[disabled] + .choices .choices__inner::after,
+.custom-dropdown[disabled] + .choices,
+.custom-dropdown[disabled] + .choices .choices__inner {
+    background-color: #e9ecef !important;
+    border-color: #ced4da !important;
+    background-image: none !important;
+    box-shadow: none !important;
+}
+
+/* Asegurar que la flecha (caret) y cualquier pseudo-elemento no queden blancos */
+select.custom-dropdown[disabled] + .choices .choices__inner::after,
+select.custom-dropdown[disabled] + .choices .choices__inner .choices__button,
+.custom-dropdown[disabled] + .choices .choices__inner::after,
+.custom-dropdown[disabled] + .choices .choices__inner .choices__button {
+    background-color: #e9ecef !important;
+    background-image: none !important;
+}
+
+/* Si Choices añade la clase .is-disabled en el padre adyacente */
+select.custom-dropdown + .choices.is-disabled,
+select.custom-dropdown + .choices.is-disabled .choices__inner,
+.custom-dropdown + .choices.is-disabled,
+.custom-dropdown + .choices.is-disabled .choices__inner {
+    background-color: #e9ecef !important;
+    border-color: #ced4da !important;
+    box-shadow: none !important;
+.choices.is-disabled .choices__inner .choices__input,
+.choices[aria-disabled="true"] .choices__inner .choices__input {
+    color: #6c757d !important;
+}
+
+/* Forzar fondo gris en todo el contenedor de Choices cuando está deshabilitado
+   cubre también la zona del caret/indicator que puede quedar con fondo blanco */
+.choices.is-disabled,
+.choices[aria-disabled="true"] {
+    background-color: #e9ecef !important;
+    border-color: #ced4da !important;
+}
+.choices.is-disabled .choices__inner,
+.choices[aria-disabled="true"] .choices__inner,
+.choices.is-disabled .choices__list--single,
+.choices[aria-disabled="true"] .choices__list--single,
+.choices.is-disabled .choices__inner *,
+.choices[aria-disabled="true"] .choices__inner * {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+}
+
+/* Intento específico para el pseudo-elemento que dibuja el caret en algunas versiones */
+.choices__inner::after,
+.choices.is-disabled .choices__inner::after,
+.choices[aria-disabled="true"] .choices__inner::after {
+    background-color: #e9ecef !important;
+}
+
+/* Último recurso: forzar absolutamente el fondo y quitar imágenes dentro de controles Choices deshabilitados */
+.choices.is-disabled,
+.choices[aria-disabled="true"],
+.choices.is-disabled *,
+.choices[aria-disabled="true"] * {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+    border-color: #ced4da !important;
+    box-shadow: none !important;
+    background-image: none !important;
+}
+
+/* Pseudo-elementos y SVGs (caret) */
+.choices.is-disabled::before,
+.choices.is-disabled::after,
+.choices[aria-disabled="true"]::before,
+.choices[aria-disabled="true"]::after,
+.choices.is-disabled .choices__inner::before,
+.choices.is-disabled .choices__inner::after,
+.choices[aria-disabled="true"] .choices__inner::before,
+.choices[aria-disabled="true"] .choices__inner::after {
+    background-color: #e9ecef !important;
+    background-image: none !important;
+}
+
+.choices.is-disabled svg,
+.choices[aria-disabled="true"] svg {
+    fill: #6c757d !important;
+    color: #6c757d !important;
+}
+
+/* Selects creados a partir de selects con clase .custom-dropdown */
+select.custom-dropdown[disabled] + .choices,
+select.custom-dropdown:disabled + .choices,
+.custom-dropdown[disabled] + .choices,
+.custom-dropdown:disabled + .choices {
+    background-color: #e9ecef !important;
+    border: 1px solid #ced4da !important;
+}
+
+/* Forzar fondo gris en todas las áreas internas que pueden permanecer blancas */
+select.custom-dropdown[disabled] + .choices .choices__inner,
+select.custom-dropdown[disabled] + .choices .choices__list--single,
+select.custom-dropdown[disabled] + .choices .choices__inner *,
+.custom-dropdown:disabled + .choices .choices__inner,
+.custom-dropdown:disabled + .choices .choices__list--single,
+.custom-dropdown:disabled + .choices .choices__inner * {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+}
+
+/* Más específico cuando Choices añade .is-disabled sobre el contenedor adjacent al select */
+select.custom-dropdown + .choices.is-disabled,
+select.custom-dropdown + .choices[aria-disabled="true"],
+.custom-dropdown + .choices.is-disabled,
+.custom-dropdown + .choices[aria-disabled="true"] {
+    background-color: #e9ecef !important;
+    border-color: #ced4da !important;
+}
+
+/* Asegurar que la flecha/caret tenga fondo gris también */
+select.custom-dropdown + .choices .choices__inner .choices__list--single::after,
+select.custom-dropdown + .choices.is-disabled .choices__inner::after,
+select.custom-dropdown + .choices[aria-disabled="true"] .choices__inner::after {
+    background-color: #e9ecef !important;
+}

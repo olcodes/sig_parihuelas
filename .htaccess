@@ -1,0 +1,32 @@
+Options -Indexes
+Options -MultiViews
+
+RewriteEngine On
+
+# ======================================================================
+# NUEVO: Redirigir recursos estáticos a la carpeta public
+# ======================================================================
+RewriteRule ^(css|js|img)/(.*)$ public/$1/$2 [L]
+
+# Redirigir la raíz al front controller (home)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^$ index.php?url=home [QSA,L]
+
+# Excluir archivos y carpetas reales
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Redirigir todo al front controller
+RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
+
+# ======================================================================
+# WORKAROUND: Reglas para evitar bloqueo de Imunify360 bot-protection
+# ======================================================================
+SetEnvIfNoCase X-Requested-With "XMLHttpRequest" IS_AJAX_REQUEST
+
+<IfModule mod_security.c>
+    <If "%{ENV:IS_AJAX_REQUEST} =~ /^1$/">
+        SecRuleEngine Off
+    </If>
+</IfModule>

@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/1999/xhtml" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Usuario – Lavoro-ERP</title>
+  <style>
+    @page { size: A4; margin: 2.5cm 2.5cm 2.5cm 3cm; }
+    body {
+      font-family: 'Calibri', 'Arial', sans-serif;
+      font-size: 11pt;
+      color: #1a1a1a;
+      background: #fff;
+      line-height: 1.7;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 20px 40px;
+    }
+    /* PORTADA */
+    .portada {
+      text-align: center;
+      padding: 80px 20px 60px;
+      border-bottom: 3px solid #1a3a5c;
+      page-break-after: always;
+    }
+    .portada .logo-text { font-size: 36pt; font-weight: 900; color: #1a3a5c; letter-spacing: 2px; }
+    .portada .logo-sub { font-size: 14pt; color: #e67e22; font-weight: bold; margin-bottom: 60px; }
+    .portada .doc-tipo { font-size: 12pt; color: #555; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px; }
+    .portada .doc-titulo { font-size: 26pt; font-weight: 700; color: #1a3a5c; margin-bottom: 10px; }
+    .portada .doc-subtitulo { font-size: 14pt; color: #555; margin-bottom: 50px; }
+    .portada .meta-table { margin: 40px auto; border-collapse: collapse; width: 70%; }
+    .portada .meta-table td { padding: 8px 16px; border: 1px solid #ccc; font-size: 10pt; }
+    .portada .meta-table td:first-child { font-weight: bold; background: #f0f4f8; width: 35%; }
+    .portada .clasificacion { margin-top: 40px; font-size: 9pt; color: #888; }
+    /* TOC */
+    .toc { page-break-after: always; }
+    .toc h2 { color: #1a3a5c; border-bottom: 2px solid #e67e22; padding-bottom: 6px; }
+    .toc ol { list-style: none; padding: 0; }
+    .toc ol li { padding: 4px 0; font-size: 10.5pt; }
+    .toc ol li a { text-decoration: none; color: #1a3a5c; }
+    .toc ol li.nivel2 { padding-left: 20px; font-weight: normal; color: #555; }
+    .toc ol li.nivel3 { padding-left: 40px; color: #777; font-size: 10pt; }
+    /* TITULOS */
+    h1 { font-size: 18pt; color: #1a3a5c; border-bottom: 3px solid #1a3a5c; padding-bottom: 8px; margin-top: 40px; }
+    h2 { font-size: 14pt; color: #1a3a5c; border-left: 4px solid #e67e22; padding-left: 10px; margin-top: 30px; }
+    h3 { font-size: 12pt; color: #2c5282; margin-top: 20px; }
+    h4 { font-size: 11pt; color: #555; margin-top: 16px; font-style: italic; }
+    /* TABLAS */
+    table.doc-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 10.5pt; }
+    table.doc-table th { background: #1a3a5c; color: white; padding: 8px 12px; text-align: left; font-weight: bold; }
+    table.doc-table td { padding: 7px 12px; border: 1px solid #ccc; vertical-align: top; }
+    table.doc-table tr:nth-child(even) td { background: #f7f9fc; }
+    /* ALERTAS */
+    .nota { background: #fff8e1; border-left: 4px solid #f39c12; padding: 10px 16px; margin: 16px 0; font-size: 10pt; }
+    .importante { background: #e8f4f8; border-left: 4px solid #2980b9; padding: 10px 16px; margin: 16px 0; font-size: 10pt; }
+    .exito { background: #e9f7ef; border-left: 4px solid #27ae60; padding: 10px 16px; margin: 16px 0; font-size: 10pt; }
+    .error { background: #fdf2f2; border-left: 4px solid #e74c3c; padding: 10px 16px; margin: 16px 0; font-size: 10pt; }
+    /* PASOS */
+    .paso-container { counter-reset: paso-counter; }
+    .paso {
+      display: flex;
+      align-items: flex-start;
+      margin: 14px 0;
+      gap: 16px;
+      padding: 10px;
+      background: #f9fafb;
+      border-radius: 6px;
+      border: 1px solid #e5eaf0;
+    }
+    .paso-num {
+      background: #1a3a5c;
+      color: white;
+      border-radius: 50%;
+      min-width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11pt;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .paso-texto { flex: 1; padding-top: 4px; }
+    .paso-texto strong { color: #1a3a5c; }
+    /* SCREENSHOT PLACEHOLDER */
+    .screenshot {
+      border: 2px dashed #b0c4d8;
+      background: #f0f5fa;
+      border-radius: 8px;
+      padding: 30px 20px;
+      text-align: center;
+      margin: 16px 0;
+      color: #4a6a8a;
+      font-size: 10pt;
+    }
+    .screenshot .ss-title { font-weight: bold; font-size: 11pt; color: #1a3a5c; margin-bottom: 6px; }
+    .screenshot .ss-desc { color: #5a6a7a; font-size: 9.5pt; font-style: italic; }
+    /* CAMPO UI */
+    .campo-ui { display: inline-block; background: #eef3f9; border: 1px solid #b8cce0; border-radius: 4px; padding: 2px 10px; font-family: 'Consolas', monospace; font-size: 9.5pt; color: #1a3a5c; }
+    .btn-ui { display: inline-block; background: #1a3a5c; color: white; border-radius: 4px; padding: 3px 12px; font-size: 9.5pt; font-weight: bold; }
+    .btn-ui.verde { background: #27ae60; }
+    .btn-ui.rojo { background: #e74c3c; }
+    .btn-ui.naranja { background: #e67e22; }
+    .btn-ui.gris { background: #95a5a6; color: white; }
+    /* MODULO HEADER */
+    .modulo-header {
+      background: linear-gradient(135deg, #1a3a5c 0%, #2c5282 100%);
+      color: white;
+      padding: 20px 24px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .modulo-header .mod-tipo { font-size: 9pt; letter-spacing: 2px; text-transform: uppercase; opacity: 0.8; }
+    .modulo-header .mod-nombre { font-size: 18pt; font-weight: 700; margin: 4px 0; }
+    .modulo-header .mod-desc { font-size: 10.5pt; opacity: 0.9; }
+    /* NUEVA PAGINA */
+    .nueva-pagina { page-break-before: always; }
+    /* PIE */
+    .pie-pagina { margin-top: 60px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 9pt; color: #888; text-align: center; }
+    @media print { body { padding: 0; } .portada { page-break-after: always; } }
+    /* LISTA CON ICONOS */
+    ul.check-list { list-style: none; padding-left: 0; }
+    ul.check-list li::before { content: "✔ "; color: #27ae60; font-weight: bold; }
+    ul.check-list li { padding: 3px 0; }
+    ul.warn-list { list-style: none; padding-left: 0; }
+    ul.warn-list li::before { content: "⚠ "; color: #e67e22; }
+    ul.warn-list li { padding: 3px 0; }
+  </style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="portada">
+  <div class="logo-text">LAVORO</div>
+  <div class="logo-sub">Sistema Integrado de Gestión Logística</div>
+  <div class="doc-tipo">Documentación del Sistema</div>
+  <div class="doc-titulo">Manual de Usuario</div>
+  <div class="doc-subtitulo">Lavoro-ERP — Guía completa de operación del sistema</div>
+  <table class="meta-table">
+    <tr><td>Proyecto</td><td>Lavoro-ERP</td></tr>
+    <tr><td>Versión del documento</td><td>1.0</td></tr>
+    <tr><td>Fecha de elaboración</td><td>Abril 2026</td></tr>
+    <tr><td>Destinatarios</td><td>Operadores, Recepcionistas, Supervisores y Administradores del sistema</td></tr>
+    <tr><td>Desarrollado por</td><td><strong>IJE Soluciones Tecnológicas</strong></td></tr>
+    <tr><td>Clasificación</td><td>Uso Interno – Lavoro</td></tr>
+  </table>
+  <div class="clasificacion">
+    Este documento contiene instrucciones de uso del sistema Lavoro-ERP.<br>
+    Desarrollado y documentado por <strong>IJE Soluciones Tecnológicas</strong>.<br>
+    Distribución autorizada al personal operativo de Lavoro.
+  </div>
+</div>
+
+<!-- TABLA DE CONTENIDOS -->
+<div class="toc">
+  <h2>Tabla de Contenidos</h2>
+  <ol>
+    <li><a href="#sec1">1. Introducción al sistema</a></li>
+    <li><a href="#sec2">2. Requisitos para el usuario</a></li>
+    <li><a href="#sec3">3. Acceso al sistema</a>
+      <ol>
+        <li class="nivel2"><a href="#sec3-1">3.1 Inicio de sesión</a></li>
+        <li class="nivel2"><a href="#sec3-2">3.2 Cierre de sesión</a></li>
+        <li class="nivel2"><a href="#sec3-3">3.3 Sesión automática por inactividad</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec4">4. Navegación general</a>
+      <ol>
+        <li class="nivel2"><a href="#sec4-1">4.1 Barra de navegación superior</a></li>
+        <li class="nivel2"><a href="#sec4-2">4.2 Menú lateral</a></li>
+        <li class="nivel2"><a href="#sec4-3">4.3 Pantalla de inicio</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec5">5. Módulo: Recepciones Internas (VRI)</a>
+      <ol>
+        <li class="nivel2"><a href="#sec5-1">5.1 ¿Para qué sirve?</a></li>
+        <li class="nivel2"><a href="#sec5-2">5.2 Registrar nueva recepción interna</a></li>
+        <li class="nivel2"><a href="#sec5-3">5.3 Buscar y consultar recepciones</a></li>
+        <li class="nivel2"><a href="#sec5-4">5.4 Modificar una recepción</a></li>
+        <li class="nivel2"><a href="#sec5-5">5.5 Anular una recepción</a></li>
+        <li class="nivel2"><a href="#sec5-6">5.6 Imprimir el vale</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec6">6. Módulo: Despachos Internos (VDI)</a>
+      <ol>
+        <li class="nivel2"><a href="#sec6-1">6.1 ¿Para qué sirve?</a></li>
+        <li class="nivel2"><a href="#sec6-2">6.2 Registrar nuevo despacho interno</a></li>
+        <li class="nivel2"><a href="#sec6-3">6.3 Buscar y consultar despachos</a></li>
+        <li class="nivel2"><a href="#sec6-4">6.4 Modificar un despacho</a></li>
+        <li class="nivel2"><a href="#sec6-5">6.5 Anular y reactivar un despacho</a></li>
+        <li class="nivel2"><a href="#sec6-6">6.6 Imprimir el vale</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec7">7. Módulo: Recepciones Externas (VRE)</a>
+      <ol>
+        <li class="nivel2"><a href="#sec7-1">7.1 ¿Para qué sirve?</a></li>
+        <li class="nivel2"><a href="#sec7-2">7.2 Registrar nueva recepción externa</a></li>
+        <li class="nivel2"><a href="#sec7-3">7.3 Consulta automática de DNI</a></li>
+        <li class="nivel2"><a href="#sec7-4">7.4 Agregar guías de remisión y productos</a></li>
+        <li class="nivel2"><a href="#sec7-5">7.5 Modificar y anular</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec8">8. Módulo: Despachos Externos (VDE)</a>
+      <ol>
+        <li class="nivel2"><a href="#sec8-1">8.1 ¿Para qué sirve?</a></li>
+        <li class="nivel2"><a href="#sec8-2">8.2 Registrar nuevo despacho externo</a></li>
+        <li class="nivel2"><a href="#sec8-3">8.3 Anular y reactivar</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec9">9. Módulo: Reportes</a>
+      <ol>
+        <li class="nivel2"><a href="#sec9-1">9.1 Tipos de reportes disponibles</a></li>
+        <li class="nivel2"><a href="#sec9-2">9.2 Aplicar filtros</a></li>
+        <li class="nivel2"><a href="#sec9-3">9.3 Exportar a Excel</a></li>
+        <li class="nivel2"><a href="#sec9-4">9.4 Edición en línea desde reportes</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec10">10. Módulo: Auditoría / Bitácora</a></li>
+    <li><a href="#sec11">11. Administración: Usuarios y Roles</a>
+      <ol>
+        <li class="nivel2"><a href="#sec11-1">11.1 Gestión de usuarios</a></li>
+        <li class="nivel2"><a href="#sec11-2">11.2 Gestión de roles y privilegios</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec12">12. Tablas Maestras</a></li>
+    <li><a href="#sec13">13. Respaldo de base de datos</a></li>
+    <li><a href="#sec14">14. Preguntas frecuentes y solución de problemas</a></li>
+    <li><a href="#sec15">15. Glosario</a></li>
+  </ol>
+</div>
+
+
+<!-- SECCIÓN 1 -->
+<h1 id="sec1">1. Introducción al sistema</h1>
+<p>
+  Bienvenido al <strong>Manual de Usuario de Lavoro-ERP</strong>, el sistema web de gestión
+  logística de Lavoro. Este manual está diseñado para guiarle paso a paso en el uso de todas
+  las funcionalidades del sistema.
+</p>
+<p>
+  <strong>Lavoro-ERP</strong> centraliza y digitaliza el registro de todas las operaciones de
+  movimiento de mercadería de la empresa: recepciones y despachos internos entre áreas, y
+  recepciones y despachos externos con proveedores y clientes.
+</p>
+
+<table class="doc-table">
+  <thead><tr><th>Módulo</th><th>¿Qué registra?</th><th>Código de vale</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Recepciones Internas</strong></td><td>Ingreso de materiales entre áreas internas de la empresa.</td><td>VRI-XXXXXX</td></tr>
+    <tr><td><strong>Despachos Internos</strong></td><td>Salida de productos hacia áreas internas de la empresa.</td><td>VDI-XXXXXX</td></tr>
+    <tr><td><strong>Recepciones Externas</strong></td><td>Ingreso de mercadería de proveedores externos con guías de remisión.</td><td>VRE-XXXXXX</td></tr>
+    <tr><td><strong>Despachos Externos</strong></td><td>Salida de mercadería hacia clientes o destinos externos.</td><td>VDE-XXXXXX</td></tr>
+  </tbody>
+</table>
+
+<div class="importante">
+  <strong>Importante:</strong> Todos los registros en el sistema son permanentes. No existe eliminación
+  de datos. Los vales pueden ser <em>anulados</em> pero siempre quedan visibles en el historial y
+  en la bitácora de auditoría.
+</div>
+
+
+<!-- SECCIÓN 2 -->
+<h1 id="sec2">2. Requisitos para el usuario</h1>
+
+<table class="doc-table">
+  <thead><tr><th>Requisito</th><th>Especificación</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Dispositivo</strong></td><td>Computadora de escritorio, laptop o tablet.</td></tr>
+    <tr><td><strong>Resolución de pantalla</strong></td><td>Mínimo 1024 × 768 píxeles. Recomendado 1280 × 800 o superior.</td></tr>
+    <tr><td><strong>Navegador web</strong></td><td>Google Chrome 90+, Microsoft Edge 90+ o Mozilla Firefox 88+. <strong>Se recomienda Google Chrome para mejor experiencia.</strong></td></tr>
+    <tr><td><strong>Conexión a internet</strong></td><td>Requerida. El sistema funciona 100% en la nube.</td></tr>
+    <tr><td><strong>JavaScript</strong></td><td>Debe estar habilitado en el navegador (está habilitado por defecto).</td></tr>
+    <tr><td><strong>Credenciales</strong></td><td>Usuario y contraseña proporcionados por el administrador del sistema.</td></tr>
+    <tr><td><strong>Cookies</strong></td><td>Deben estar habilitadas para el funcionamiento de la sesión.</td></tr>
+  </tbody>
+</table>
+
+<div class="nota">
+  <strong>Nota:</strong> No es necesario instalar ningún software adicional. El sistema
+  funciona completamente desde el navegador web.
+</div>
+
+
+<!-- SECCIÓN 3 -->
+<h1 id="sec3" class="nueva-pagina">3. Acceso al sistema</h1>
+
+<h2 id="sec3-1">3.1 Inicio de sesión</h2>
+<p>Para acceder al sistema, abra su navegador e ingrese la dirección URL proporcionada por su administrador.</p>
+
+<div class="screenshot">
+  <div class="ss-title">[ Pantalla de Inicio de Sesión ]</div>
+  <div class="ss-desc">
+    Formulario centrado con el logo de Lavoro en la parte superior.<br>
+    Campos: "Usuario" y "Contraseña" con el botón azul "Ingresar".
+  </div>
+</div>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">
+      <strong>Ingrese su nombre de usuario</strong> en el campo <span class="campo-ui">Usuario</span>.<br>
+      El usuario no distingue entre mayúsculas y minúsculas.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">
+      <strong>Ingrese su contraseña</strong> en el campo <span class="campo-ui">Contraseña</span>.<br>
+      La contraseña sí distingue entre mayúsculas y minúsculas. Verifique que Caps Lock esté desactivado.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">
+      Haga clic en el botón <span class="btn-ui">Ingresar</span> o presione la tecla <kbd>Enter</kbd>.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">
+      <strong>Si las credenciales son correctas</strong>, el sistema lo redirigirá automáticamente a la
+      pantalla de inicio con el mensaje de bienvenida.<br>
+      <strong>Si son incorrectas</strong>, aparecerá un mensaje de error en rojo. Verifique sus datos
+      o contacte a su administrador.
+    </div>
+  </div>
+</div>
+
+<div class="error">
+  <strong>¿Olvidó su contraseña?</strong> Contacte al administrador del sistema para que le asigne una nueva contraseña. El sistema no tiene recuperación automática por correo.
+</div>
+
+<h2 id="sec3-2">3.2 Cierre de sesión</h2>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">
+      En la parte superior derecha de la pantalla, haga clic sobre su <strong>nombre de usuario</strong>.
+      Aparecerá un menú desplegable.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">
+      Haga clic en <span class="btn-ui rojo">Cerrar Sesión</span>.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">
+      El sistema cerrará su sesión y lo redirigirá a la pantalla de inicio de sesión.
+    </div>
+  </div>
+</div>
+
+<h2 id="sec3-3">3.3 Cierre automático por inactividad</h2>
+<p>
+  Por seguridad, el sistema cerrará su sesión automáticamente después de
+  <strong>20 minutos de inactividad</strong>. Al volver a la pantalla verá el siguiente mensaje:
+</p>
+<div class="nota">
+  <strong>"Su sesión fue cerrada automáticamente por inactividad."</strong><br>
+  Deberá iniciar sesión nuevamente. Cualquier trabajo no guardado se perderá.
+</div>
+<p>Para evitar el cierre automático, interactúe con el sistema regularmente o guarde su trabajo antes de ausentarse.</p>
+
+
+<!-- SECCIÓN 4 -->
+<h1 id="sec4" class="nueva-pagina">4. Navegación general</h1>
+
+<h2 id="sec4-1">4.1 Barra de navegación superior</h2>
+
+<div class="screenshot">
+  <div class="ss-title">[ Barra de navegación superior ]</div>
+  <div class="ss-desc">
+    Barra horizontal blanca con sombra. A la izquierda: botón ☰ (toggle menú) y logo Lavoro.<br>
+    A la derecha: nombre del usuario con flecha desplegable. Fondo blanco, altura aprox. 70px.
+  </div>
+</div>
+
+<table class="doc-table">
+  <thead><tr><th>Elemento</th><th>Ubicación</th><th>Función</th></tr></thead>
+  <tbody>
+    <tr><td>Botón ☰ (Menú)</td><td>Extremo izquierdo</td><td>Muestra u oculta el menú lateral. Útil para ampliar el área de trabajo en pantallas pequeñas.</td></tr>
+    <tr><td>Logo Lavoro</td><td>Centro-izquierda</td><td>Al hacer clic, regresa a la pantalla de inicio.</td></tr>
+    <tr><td>Nombre de usuario</td><td>Extremo derecho</td><td>Al hacer clic, despliega el menú con nombre de usuario y opción de cerrar sesión.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-2">4.2 Menú lateral</h2>
+
+<div class="screenshot">
+  <div class="ss-title">[ Menú lateral (Sidebar) ]</div>
+  <div class="ss-desc">
+    Panel vertical azul oscuro en el lado izquierdo de la pantalla. Muestra los módulos
+    disponibles según el rol del usuario. El módulo activo se resalta con fondo más claro.
+  </div>
+</div>
+
+<p>El menú lateral muestra <strong>solo los módulos a los que el usuario tiene acceso</strong> según su rol. Si no ve una opción, es porque su rol no tiene ese privilegio.</p>
+
+<table class="doc-table">
+  <thead><tr><th>Ítem del menú</th><th>Módulo que abre</th></tr></thead>
+  <tbody>
+    <tr><td>🏠 Inicio</td><td>Pantalla de bienvenida</td></tr>
+    <tr><td>📥 Recepciones Internas</td><td>Gestión de VRI</td></tr>
+    <tr><td>📤 Despachos Internos</td><td>Gestión de VDI</td></tr>
+    <tr><td>🚚 Recepciones Externas</td><td>Gestión de VRE con guías</td></tr>
+    <tr><td>🚛 Despachos Externos</td><td>Gestión de VDE</td></tr>
+    <tr><td>📊 Reportes</td><td>Reportes y exportación a Excel</td></tr>
+    <tr><td>🔍 Auditoría</td><td>Bitácora de operaciones</td></tr>
+    <tr><td>👥 Usuarios</td><td>Administración de cuentas (solo Admin)</td></tr>
+    <tr><td>🔑 Roles</td><td>Gestión de roles y permisos (solo Admin)</td></tr>
+    <tr><td>📋 Maestros</td><td>Submenú con tablas maestras</td></tr>
+    <tr><td>💾 Backup</td><td>Respaldo de base de datos (solo Admin)</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-3">4.3 Pantalla de inicio</h2>
+<p>
+  Al iniciar sesión, verá la pantalla de inicio con el mensaje <em>"Bienvenido a Lavoro-ERP —
+  Gestión de información"</em>. Desde aquí puede navegar a cualquier módulo usando el menú lateral.
+</p>
+
+
+<!-- SECCIÓN 5 — RECEPCIONES INTERNAS -->
+<h1 id="sec5" class="nueva-pagina">5. Módulo: Recepciones Internas (VRI)</h1>
+
+<div class="modulo-header">
+  <div class="mod-tipo">Módulo 1 de 4</div>
+  <div class="mod-nombre">📥 Recepciones Internas</div>
+  <div class="mod-desc">Registro de ingreso de materiales entre áreas internas de la empresa. Genera Vales de Recepción Interna (VRI) con correlativo automático.</div>
+</div>
+
+<h2 id="sec5-1">5.1 ¿Para qué sirve?</h2>
+<p>
+  Use este módulo cuando necesite registrar el ingreso de materiales o productos de un área
+  hacia otra dentro de la empresa. Por ejemplo: cuando el almacén recibe materiales de producción.
+</p>
+<p>
+  Cada registro genera un <strong>Vale de Recepción Interna (VRI)</strong> con correlativo único
+  (VRI-000001, VRI-000002, etc.) que puede imprimirse para firma de los responsables.
+</p>
+
+<h2 id="sec5-2">5.2 Registrar nueva recepción interna</h2>
+
+<div class="screenshot">
+  <div class="ss-title">[ Formulario de Nueva Recepción Interna ]</div>
+  <div class="ss-desc">
+    Formulario en dos columnas. Parte superior: campos de cabecera (correlativo, fecha, turno, área, etc.).
+    Parte inferior: tabla dinámica de productos con botón "+ Agregar producto". Botón verde "Guardar" al final.
+  </div>
+</div>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">
+      En el menú lateral, haga clic en <strong>Recepciones Internas</strong>. Se abrirá el formulario
+      con el correlativo siguiente ya asignado automáticamente (ej: <strong>VRI-000043</strong>).
+      La fecha y hora actuales también se completan automáticamente.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">
+      <strong>Seleccione el Turno:</strong> Elija entre Mañana, Tarde o Noche según corresponda.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">
+      <strong>Seleccione el Área</strong> del campo <span class="campo-ui">Área</span> y luego la
+      <strong>Subárea</strong> correspondiente. La subárea se actualiza según el área elegida.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">
+      <strong>Seleccione el Despachador</strong> y el <strong>Verificador</strong> de las listas
+      desplegables. Si necesita un nombre que no aparece, contacte al administrador para agregarlo
+      en los maestros.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">5</div>
+    <div class="paso-texto">
+      <strong>Seleccione el Medio de Transporte</strong> (camión, furgoneta, a pie, etc.) utilizado
+      para el traslado.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">6</div>
+    <div class="paso-texto">
+      <strong>Ingrese el N° de Liquidación</strong> (opcional) si el movimiento está asociado a una
+      liquidación de almacén.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">7</div>
+    <div class="paso-texto">
+      <strong>Agregue los productos:</strong> Haga clic en el botón <span class="btn-ui verde">+ Agregar producto</span>.
+      Aparecerá una nueva fila en la tabla de productos. Complete:
+      <ul>
+        <li><span class="campo-ui">Código</span> — Código del producto del catálogo (puede escribir para buscar).</li>
+        <li><span class="campo-ui">Descripción</span> — Se completa automáticamente al seleccionar el código.</li>
+        <li><span class="campo-ui">Unidad de Medida</span> — Kg, Lt, Und, Cja, etc.</li>
+        <li><span class="campo-ui">Cantidad</span> — Cantidad recibida (número positivo).</li>
+        <li><span class="campo-ui">Comentarios</span> — Observaciones opcionales sobre ese producto.</li>
+      </ul>
+      Repita este paso para cada producto adicional.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">8</div>
+    <div class="paso-texto">
+      Para eliminar una fila de producto, haga clic en el botón <span class="btn-ui rojo">✕</span>
+      al final de esa fila.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">9</div>
+    <div class="paso-texto">
+      Cuando haya completado todos los datos, haga clic en <span class="btn-ui verde">Guardar</span>.<br>
+      El sistema validará los campos requeridos. Si hay errores, se mostrarán en rojo indicando qué
+      debe corregir.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">10</div>
+    <div class="paso-texto">
+      Si el registro es exitoso, verá un mensaje de confirmación con el correlativo generado
+      (<em>"Recepción interna registrada exitosamente. VRI-000043"</em>).
+    </div>
+  </div>
+</div>
+
+<div class="exito">
+  <strong>Buena práctica:</strong> Verifique que la cantidad de cada producto sea la correcta
+  antes de guardar. Una vez guardado, la modificación queda registrada en la bitácora de auditoría.
+</div>
+
+<h2 id="sec5-3">5.3 Buscar y consultar recepciones</h2>
+<p>
+  En la sección de listado (parte inferior o separada según la vista), puede buscar y filtrar
+  los VRI registrados:
+</p>
+<ul class="check-list">
+  <li>Use el campo de búsqueda para filtrar por número de correlativo (ej: "VRI-000043").</li>
+  <li>Use los filtros de fecha <span class="campo-ui">Desde</span> y <span class="campo-ui">Hasta</span> para acotar por rango.</li>
+  <li>Use el filtro de <span class="campo-ui">Estado</span> para ver solo activos o solo anulados.</li>
+  <li>Haga clic en el botón <span class="btn-ui">Buscar</span> para aplicar los filtros.</li>
+  <li>Para ver el detalle completo de un VRI, haga clic en el ícono 👁 o en el correlativo.</li>
+</ul>
+
+<h2 id="sec5-4">5.4 Modificar una recepción</h2>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Encuentre el VRI que desea modificar en el listado y haga clic en el botón <span class="btn-ui naranja">✏ Editar</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Se cargará el formulario con los datos actuales del vale. Realice los cambios necesarios.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">Guardar cambios</span>. El sistema registrará automáticamente la modificación en la bitácora indicando quién, cuándo y desde qué IP se realizó el cambio.</div>
+  </div>
+</div>
+<div class="nota">
+  <strong>Nota:</strong> No se puede modificar un VRI que ha sido anulado. Para ello, primero debe reactivarlo (si tiene el privilegio correspondiente).
+</div>
+
+<h2 id="sec5-5">5.5 Anular una recepción</h2>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">En el listado, haga clic en el botón <span class="btn-ui rojo">🚫 Anular</span> del VRI correspondiente.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Aparecerá un cuadro de confirmación solicitando el <strong>motivo de la anulación</strong>. Ingrese una descripción clara del motivo.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Confirme la anulación. El VRI quedará marcado en rojo como <strong>ANULADO</strong> en el listado pero no desaparecerá del historial.</div>
+  </div>
+</div>
+<div class="importante">
+  <strong>Importante:</strong> La anulación no elimina el registro. El vale anulado permanece visible en el sistema y en la bitácora de auditoría como registro histórico.
+</div>
+
+<h2 id="sec5-6">5.6 Imprimir el vale</h2>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Abra el detalle del VRI que desea imprimir.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Haga clic en el botón <span class="btn-ui">🖨 Imprimir</span>. Se abrirá una nueva pestaña o ventana con la vista de impresión del vale en formato A4.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">En el diálogo de impresión del navegador, configure papel A4 y haga clic en Imprimir. El vale incluye todos los datos del encabezado, la lista de productos y los espacios para firma.</div>
+  </div>
+</div>
+
+
+<!-- SECCIÓN 6 — DESPACHOS INTERNOS -->
+<h1 id="sec6" class="nueva-pagina">6. Módulo: Despachos Internos (VDI)</h1>
+
+<div class="modulo-header">
+  <div class="mod-tipo">Módulo 2 de 4</div>
+  <div class="mod-nombre">📤 Despachos Internos</div>
+  <div class="mod-desc">Registro de salida de productos hacia áreas internas de la empresa. Genera Vales de Despacho Interno (VDI) con correlativo automático.</div>
+</div>
+
+<h2 id="sec6-1">6.1 ¿Para qué sirve?</h2>
+<p>
+  Use este módulo para registrar la <strong>salida</strong> de productos desde el almacén u
+  otra área, hacia un área interna de la empresa. Por ejemplo: cuando despacha insumos de
+  producción al área de manufactura.
+</p>
+
+<h2 id="sec6-2">6.2 Registrar nuevo despacho interno</h2>
+
+<div class="screenshot">
+  <div class="ss-title">[ Formulario de Nuevo Despacho Interno ]</div>
+  <div class="ss-desc">
+    Formulario similar a Recepciones Internas. Campos de cabecera con correlativo VDI-XXXXXX,
+    fecha, turno, área, subárea, despachador, recepcionista y verificador. Tabla de productos al centro.
+    Botón "Guardar" al final.
+  </div>
+</div>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">En el menú, haga clic en <strong>Despachos Internos</strong>. Se genera automáticamente el correlativo <strong>VDI-XXXXXX</strong>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto"><strong>Seleccione:</strong> Turno, Área, Subárea del destino del despacho.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">
+      <strong>Seleccione los responsables:</strong>
+      <ul>
+        <li><span class="campo-ui">Despachador</span> — Persona que entrega los productos.</li>
+        <li><span class="campo-ui">Recepcionista</span> — Persona que recibe los productos.</li>
+        <li><span class="campo-ui">Verificador</span> — Supervisor que valida la operación.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">Agregue los productos con sus cantidades usando el botón <span class="btn-ui verde">+ Agregar producto</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">5</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">Guardar</span>. Recibirá confirmación con el VDI generado.</div>
+  </div>
+</div>
+
+<h2 id="sec6-3">6.3 Buscar y consultar despachos</h2>
+<p>El proceso es idéntico al de Recepciones Internas. Use los filtros de correlativo, fecha y estado para encontrar un VDI específico.</p>
+
+<h2 id="sec6-4">6.4 Modificar un despacho</h2>
+<div class="importante">
+  <strong>Límite de modificaciones:</strong> Los despachos internos tienen un número máximo de
+  modificaciones permitidas. Si intenta editar un VDI que ha alcanzado ese límite, el sistema
+  mostrará el mensaje: <em>"Este despacho ha alcanzado el límite máximo de modificaciones
+  permitidas."</em> En ese caso, contacte al administrador.
+</div>
+<p>Si la modificación está permitida, el proceso es igual al de Recepciones Internas: busque el VDI, haga clic en <span class="btn-ui naranja">✏ Editar</span>, realice los cambios y guarde.</p>
+
+<h2 id="sec6-5">6.5 Anular y reactivar un despacho</h2>
+<ul class="check-list">
+  <li><strong>Anular:</strong> igual al proceso de Recepciones Internas. Ingrese el motivo y confirme.</li>
+  <li><strong>Reactivar:</strong> Si un VDI fue anulado por error y tiene el privilegio correspondiente, puede reactivarlo haciendo clic en el botón <span class="btn-ui verde">↩ Reactivar</span>. No se requiere motivo para la reactivación.</li>
+</ul>
+
+<h2 id="sec6-6">6.6 Imprimir el vale</h2>
+<p>Igual al proceso de Recepciones Internas. El vale impreso incluye las firmas del despachador, recepcionista y verificador.</p>
+
+
+<!-- SECCIÓN 7 — RECEPCIONES EXTERNAS -->
+<h1 id="sec7" class="nueva-pagina">7. Módulo: Recepciones Externas (VRE)</h1>
+
+<div class="modulo-header">
+  <div class="mod-tipo">Módulo 3 de 4</div>
+  <div class="mod-nombre">🚚 Recepciones Externas</div>
+  <div class="mod-desc">Registro de ingreso de mercadería proveniente de proveedores o transportistas externos. Incluye guías de remisión y datos del vehículo. Genera Vales VRE-XXXXXX.</div>
+</div>
+
+<h2 id="sec7-1">7.1 ¿Para qué sirve?</h2>
+<p>
+  Use este módulo cuando llegue mercadería de un proveedor o transportista externo. Registra
+  los datos del vehículo, del chofer, del transportista y las guías de remisión con sus
+  respectivos productos.
+</p>
+
+<div class="screenshot">
+  <div class="ss-title">[ Formulario de Nueva Recepción Externa ]</div>
+  <div class="ss-desc">
+    Formulario más complejo que el interno. Sección superior: datos del vale (correlativo VRE, fecha, turno, origen, recepcionista).
+    Sección media: datos del transportista (empresa, RUC, DNI del chofer con botón de consulta automática, brevete).
+    Sección inferior: acordeón de guías de remisión con tabla de productos anidada.
+  </div>
+</div>
+
+<h2 id="sec7-2">7.2 Registrar nueva recepción externa</h2>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Haga clic en <strong>Recepciones Externas</strong> en el menú. Se genera el correlativo <strong>VRE-XXXXXX</strong> automáticamente.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto"><strong>Seleccione:</strong> Turno, Origen (procedencia de la mercadería) y Recepcionista que recibe.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">
+      <strong>Datos del transportista:</strong>
+      <ul>
+        <li>Seleccione o ingrese la <span class="campo-ui">Empresa</span> transportista y su <span class="campo-ui">RUC</span>.</li>
+        <li>Seleccione el <span class="campo-ui">Chofer</span> de la lista, o ingrese su DNI para búsqueda automática.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">Ingrese las <strong>Guías de remisión</strong> — vea la sección 7.4 para el detalle.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">5</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">Guardar</span> para registrar la recepción completa.</div>
+  </div>
+</div>
+
+<h2 id="sec7-3">7.3 Consulta automática de DNI del chofer</h2>
+<p>
+  El sistema tiene una función especial que consulta automáticamente los datos de la persona
+  a través del número de DNI:
+</p>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">En el campo <span class="campo-ui">DNI del Chofer</span>, ingrese el número de 8 dígitos.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Haga clic fuera del campo o presione Tab. El sistema consultará automáticamente el servicio de validación.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Si el DNI es válido, los campos <span class="campo-ui">Nombre del Chofer</span> y <span class="campo-ui">Brevete</span> se completarán automáticamente.</div>
+  </div>
+</div>
+
+<div class="nota">
+  <strong>Si la consulta automática falla</strong> (sin conexión al servicio externo o DNI no encontrado),
+  el sistema le permitirá ingresar manualmente el nombre completo y brevete del chofer.
+  El proceso de guardado continúa normalmente.
+</div>
+
+<h2 id="sec7-4">7.4 Agregar guías de remisión y productos</h2>
+
+<p>Cada Vale de Recepción Externa puede tener <strong>una o más guías de remisión</strong>. Cada guía tiene su propio listado de productos.</p>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">+ Agregar guía</span>. Aparecerá un panel para la guía.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">
+      Seleccione la <span class="campo-ui">Serie</span> de la guía (ej: T001) e ingrese el <span class="campo-ui">Número</span> de la guía de remisión.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">
+      Dentro de esa guía, haga clic en <span class="btn-ui verde">+ Producto</span> para agregar cada
+      producto recibido con esa guía: código, descripción, unidad de medida y cantidad.
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">Repita los pasos 1–3 para cada guía adicional que llegue en la misma recepción.</div>
+  </div>
+</div>
+
+<div class="screenshot">
+  <div class="ss-title">[ Sección de guías de remisión ]</div>
+  <div class="ss-desc">
+    Acordeón expandible con una tarjeta por guía. Cada tarjeta muestra: serie + número de guía, y debajo la
+    tabla de productos. Botón "+" para agregar nueva guía y "+" dentro de cada guía para agregar productos.
+  </div>
+</div>
+
+<h2 id="sec7-5">7.5 Modificar y anular recepciones externas</h2>
+<ul class="check-list">
+  <li><strong>Modificar:</strong> Desde la vista de reportes o desde el listado. Haga clic en <span class="btn-ui naranja">✏ Editar</span> y modifique los datos necesarios.</li>
+  <li><strong>Anular:</strong> Haga clic en <span class="btn-ui rojo">🚫 Anular</span>, ingrese el motivo y confirme.</li>
+</ul>
+
+
+<!-- SECCIÓN 8 — DESPACHOS EXTERNOS -->
+<h1 id="sec8" class="nueva-pagina">8. Módulo: Despachos Externos (VDE)</h1>
+
+<div class="modulo-header">
+  <div class="mod-tipo">Módulo 4 de 4</div>
+  <div class="mod-nombre">🚛 Despachos Externos</div>
+  <div class="mod-desc">Registro de salida de mercadería hacia clientes o destinos externos, con datos completos del transporte. Genera Vales VDE-XXXXXX.</div>
+</div>
+
+<h2 id="sec8-1">8.1 ¿Para qué sirve?</h2>
+<p>
+  Use este módulo cuando necesite registrar el envío de mercadería a un cliente externo o
+  destino fuera de las instalaciones de la empresa. Registra todos los datos del transporte:
+  empresa, chofer, placa, hora de salida.
+</p>
+
+<h2 id="sec8-2">8.2 Registrar nuevo despacho externo</h2>
+
+<div class="screenshot">
+  <div class="ss-title">[ Formulario de Nuevo Despacho Externo ]</div>
+  <div class="ss-desc">
+    Formulario con campos de cabecera: correlativo VDE-XXXXXX, fecha, turno, destino, cliente externo,
+    empresa transportista, chofer, placa, hora de salida. Tabla de productos en la parte inferior.
+  </div>
+</div>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Haga clic en <strong>Despachos Externos</strong>. Se genera el correlativo <strong>VDE-XXXXXX</strong>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto"><strong>Seleccione:</strong> Turno, Destino del envío y Cliente Externo.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">
+      <strong>Datos del transporte:</strong>
+      <ul>
+        <li>Seleccione la <span class="campo-ui">Empresa Transportista</span> y el <span class="campo-ui">Chofer</span>.</li>
+        <li>Seleccione la <span class="campo-ui">Placa</span> del vehículo.</li>
+        <li>Ingrese la <span class="campo-ui">Hora de Salida</span>.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">Agregue los productos despachados con sus cantidades.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">5</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">Guardar</span>.</div>
+  </div>
+</div>
+
+<h2 id="sec8-3">8.3 Anular y reactivar despachos externos</h2>
+<ul class="check-list">
+  <li><strong>Anular:</strong> Haga clic en <span class="btn-ui rojo">🚫 Anular</span>, ingrese el motivo de anulación.</li>
+  <li><strong>Reactivar:</strong> Si fue anulado por error, haga clic en <span class="btn-ui verde">↩ Reactivar</span> (requiere privilegio de administrador).</li>
+  <li><strong>Límite de modificaciones:</strong> Al igual que los despachos internos, existe un número máximo de modificaciones por vale.</li>
+</ul>
+
+
+<!-- SECCIÓN 9 — REPORTES -->
+<h1 id="sec9" class="nueva-pagina">9. Módulo: Reportes</h1>
+
+<h2 id="sec9-1">9.1 Tipos de reportes disponibles</h2>
+
+<p>El módulo de Reportes centraliza la consulta de todos los registros del sistema con capacidad de filtrado y exportación.</p>
+
+<table class="doc-table">
+  <thead><tr><th>Reporte</th><th>Acceso</th><th>Contenido</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Despachos Internos</strong></td><td>Reportes → Despachos Internos</td><td>Listado completo de VDI con filtros por fecha, estado, área y correlativo.</td></tr>
+    <tr><td><strong>Recepciones Internas</strong></td><td>Reportes → Recepciones Internas</td><td>Listado completo de VRI con los mismos filtros.</td></tr>
+    <tr><td><strong>Recepciones Externas</strong></td><td>Reportes → Recepciones Externas</td><td>Listado de VRE con transportista, origen y estado. Muestra guías asociadas.</td></tr>
+    <tr><td><strong>Despachos Externos</strong></td><td>Reportes → Despachos Externos</td><td>Listado de VDE con destino, transportista y estado.</td></tr>
+    <tr><td><strong>Consolidado</strong></td><td>Reportes → Consolidado</td><td>Reporte cruzado de movimientos internos y externos por periodo.</td></tr>
+    <tr><td><strong>Picking</strong></td><td>Reportes → Picking</td><td>Reporte de picking para preparación de pedidos.</td></tr>
+    <tr><td><strong>Recepciones Liquidadas</strong></td><td>Reportes → Liquidadas</td><td>Recepciones externas que han sido liquidadas.</td></tr>
+  </tbody>
+</table>
+
+<div class="screenshot">
+  <div class="ss-title">[ Módulo de Reportes — Vista de Despachos Internos ]</div>
+  <div class="ss-desc">
+    Parte superior: filtros con campos "Desde", "Hasta", "Estado" y "Buscar". Botones "Filtrar" y "Exportar Excel".
+    Tabla central con columnas: N° Vale, Fecha, Área, Despachador, Estado, Productos, Acciones.
+    Paginación en la parte inferior.
+  </div>
+</div>
+
+<h2 id="sec9-2">9.2 Aplicar filtros</h2>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Seleccione el rango de fechas en los campos <span class="campo-ui">Desde</span> y <span class="campo-ui">Hasta</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Seleccione el <span class="campo-ui">Estado</span>: Todos, Activo o Anulado.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Opcionalmente, escriba en el campo de búsqueda un texto para filtrar (correlativo, área, responsable).</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui">🔍 Filtrar</span>. Los resultados se actualizarán en la tabla.</div>
+  </div>
+</div>
+
+<h2 id="sec9-3">9.3 Exportar a Excel</h2>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Aplique los filtros deseados según la sección anterior.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Haga clic en el botón <span class="btn-ui verde">📥 Exportar Excel</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">El navegador descargará automáticamente un archivo <strong>.xlsx</strong> con todos los registros que cumplen los filtros aplicados (no solo los de la página visible).</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">Abra el archivo con Microsoft Excel u otro programa compatible (Google Sheets, LibreOffice Calc).</div>
+  </div>
+</div>
+
+<div class="nota">
+  <strong>Tip:</strong> El archivo exportado incluye encabezados con formato y contiene todos los registros del filtro aplicado, no solo los de la página actual.
+</div>
+
+<h2 id="sec9-4">9.4 Edición en línea desde reportes</h2>
+<p>
+  Desde la vista de reportes, usuarios con el privilegio correspondiente pueden editar campos
+  específicos de un vale sin necesidad de abrir el formulario completo:
+</p>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">En la tabla del reporte, haga clic en el ícono ✏ de la fila que desea editar.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Se expandirá la fila con los productos editables. Modifique cantidad, código o comentarios del producto específico.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">Guardar</span> para confirmar el cambio. El sistema actualizará solo ese producto sin afectar los demás.</div>
+  </div>
+</div>
+
+
+<!-- SECCIÓN 10 — AUDITORÍA -->
+<h1 id="sec10" class="nueva-pagina">10. Módulo: Auditoría / Bitácora</h1>
+
+<p>
+  El módulo de Auditoría le permite consultar el historial completo de todas las operaciones
+  realizadas en el sistema: quién registró cada vale, quién lo modificó y cuándo.
+</p>
+
+<div class="importante">
+  <strong>Acceso restringido:</strong> Este módulo está disponible solo para usuarios con el
+  privilegio <em>ver_auditoria</em> (normalmente Administradores y Supervisores).
+</div>
+
+<div class="screenshot">
+  <div class="ss-title">[ Módulo de Auditoría — Vista de Bitácora ]</div>
+  <div class="ss-desc">
+    Encabezado con filtros: Módulo, Acción, Usuario, Fecha desde/hasta, N° de vale.
+    Tabla de resultados con columnas: Módulo, N° Vale, Acción, Usuario, Fecha/Hora, IP.
+    Paginación de 50 registros por página.
+  </div>
+</div>
+
+<h3>Cómo usar la bitácora</h3>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Haga clic en <strong>Auditoría</strong> en el menú lateral.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Aplique los filtros disponibles:
+      <ul>
+        <li><span class="campo-ui">Módulo</span> — Seleccione el módulo a auditar (Despacho Interno, etc.).</li>
+        <li><span class="campo-ui">Acción</span> — CREACIÓN, MODIFICACIÓN, ANULACIÓN.</li>
+        <li><span class="campo-ui">Usuario</span> — Filtre por un usuario específico.</li>
+        <li><span class="campo-ui">Fecha desde / hasta</span> — Rango de fechas.</li>
+        <li><span class="campo-ui">N° de Vale</span> — Busque el historial de un vale específico.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Para ver el historial detallado de un vale específico (todas sus versiones), haga clic en el botón de historial de esa fila.</div>
+  </div>
+</div>
+
+<p>La bitácora registra:</p>
+<ul class="check-list">
+  <li>Módulo afectado y N° de vale.</li>
+  <li>Tipo de acción (creación / modificación / anulación).</li>
+  <li>Usuario responsable (nombre y usuario del sistema).</li>
+  <li>Fecha y hora exacta de la operación.</li>
+  <li>Dirección IP desde la que se realizó la acción.</li>
+  <li>Número de modificación (para modificaciones sucesivas).</li>
+</ul>
+
+
+<!-- SECCIÓN 11 — ADMINISTRACIÓN -->
+<h1 id="sec11" class="nueva-pagina">11. Administración: Usuarios y Roles</h1>
+
+<div class="importante">
+  <strong>Acceso restringido:</strong> Esta sección es exclusiva del rol Administrador.
+</div>
+
+<h2 id="sec11-1">11.1 Gestión de usuarios</h2>
+<p>Acceda desde el menú: <strong>Usuarios</strong>.</p>
+
+<h3>Crear nuevo usuario</h3>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">+ Nuevo Usuario</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Complete los campos:
+      <ul>
+        <li><span class="campo-ui">Usuario</span> — Nombre de acceso (único en el sistema).</li>
+        <li><span class="campo-ui">Contraseña</span> — Mínimo recomendado 8 caracteres con letras y números.</li>
+        <li><span class="campo-ui">Documento de Identidad</span> — DNI u otro documento.</li>
+        <li><span class="campo-ui">Nombres y Apellidos</span> — Nombre completo del usuario.</li>
+        <li><span class="campo-ui">Rol</span> — Seleccione el rol que define los permisos del usuario.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">Guardar</span>. El usuario podrá iniciar sesión inmediatamente.</div>
+  </div>
+</div>
+
+<h3>Editar o desactivar usuario</h3>
+<p>En el listado de usuarios, haga clic en <span class="btn-ui naranja">✏ Editar</span> para modificar los datos o cambiar el rol. Para desactivar un usuario, cambie su estado a inactivo.</p>
+
+<h3>Exportar listado de usuarios</h3>
+<p>Haga clic en <span class="btn-ui verde">📥 Exportar Excel</span> para descargar el listado completo de usuarios del sistema (sin contraseñas).</p>
+
+<h2 id="sec11-2">11.2 Gestión de roles y privilegios</h2>
+<p>Acceda desde: <strong>Roles</strong> en el menú lateral.</p>
+
+<h3>Crear nuevo rol</h3>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">+ Nuevo Rol</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Ingrese el nombre del rol (ej: "Operador Almacén") y una descripción.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Guarde el rol. Luego, haga clic en <span class="btn-ui">⚙ Privilegios</span> para asignar los permisos específicos a ese rol.</div>
+  </div>
+</div>
+
+<h3>Asignar privilegios a un rol</h3>
+<p>
+  En la pantalla de privilegios del rol, verá dos columnas: privilegios disponibles y privilegios
+  asignados. Haga clic en el privilegio para moverlo de una columna a la otra. Los cambios se
+  guardan automáticamente o con el botón de confirmar.
+</p>
+
+<table class="doc-table">
+  <thead><tr><th>Privilegio</th><th>Qué permite</th></tr></thead>
+  <tbody>
+    <tr><td>ver_recepciones_internas</td><td>Ver el listado y detalle de VRI.</td></tr>
+    <tr><td>crear_recepciones_internas</td><td>Registrar nuevos VRI.</td></tr>
+    <tr><td>editar_recepciones_internas</td><td>Modificar VRI existentes.</td></tr>
+    <tr><td>anular_recepciones_internas</td><td>Anular VRI.</td></tr>
+    <tr><td>ver_despachos_internos</td><td>Ver el listado y detalle de VDI.</td></tr>
+    <tr><td>crear_despachos_internos</td><td>Registrar nuevos VDI.</td></tr>
+    <tr><td>ver_recepciones_externas</td><td>Ver el listado y detalle de VRE.</td></tr>
+    <tr><td>crear_recepciones_externas</td><td>Registrar nuevos VRE.</td></tr>
+    <tr><td>ver_despachos_externos</td><td>Ver el listado y detalle de VDE.</td></tr>
+    <tr><td>crear_despachos_externos</td><td>Registrar nuevos VDE.</td></tr>
+    <tr><td>ver_reportes</td><td>Acceder al módulo de reportes.</td></tr>
+    <tr><td>exportar_excel</td><td>Exportar cualquier reporte a Excel.</td></tr>
+    <tr><td>ver_auditoria</td><td>Acceder a la bitácora de auditoría.</td></tr>
+    <tr><td>ver_usuarios</td><td>Ver el listado de usuarios del sistema.</td></tr>
+    <tr><td>crear_usuarios</td><td>Crear nuevas cuentas de usuario.</td></tr>
+    <tr><td>reactivar_despachos</td><td>Reactivar despachos anulados.</td></tr>
+  </tbody>
+</table>
+
+
+<!-- SECCIÓN 12 — TABLAS MAESTRAS -->
+<h1 id="sec12" class="nueva-pagina">12. Tablas Maestras</h1>
+
+<p>
+  Las tablas maestras son los catálogos de datos que alimentan los formularios del sistema.
+  Solo usuarios con privilegios de administración pueden modificarlas.
+</p>
+
+<p>Para acceder, use el submenú <strong>Maestros</strong> en el menú lateral.</p>
+
+<table class="doc-table">
+  <thead>
+    <tr><th>Tabla Maestra</th><th>Cómo acceder</th><th>Qué gestiona</th><th>Afecta a</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Productos</strong></td><td>Maestros → Productos</td><td>Catálogo de productos: código, nombre, unidad de medida.</td><td>Todos los módulos</td></tr>
+    <tr><td><strong>Áreas</strong></td><td>Maestros → Áreas</td><td>Áreas organizacionales (ej: Almacén, Producción).</td><td>Módulos internos</td></tr>
+    <tr><td><strong>Subáreas</strong></td><td>Maestros → Subáreas</td><td>Divisiones de cada área. Vinculadas al área padre.</td><td>Módulos internos</td></tr>
+    <tr><td><strong>Responsables</strong></td><td>Maestros → Responsables</td><td>Personal despachador y verificador.</td><td>Módulos internos</td></tr>
+    <tr><td><strong>Recepcionistas</strong></td><td>Maestros → Recepcionistas</td><td>Personal recepcionista.</td><td>Internos y externos</td></tr>
+    <tr><td><strong>Transportistas</strong></td><td>Maestros → Transportistas</td><td>Empresas de transporte con RUC.</td><td>Módulos externos</td></tr>
+    <tr><td><strong>Choferes</strong></td><td>Maestros → Choferes</td><td>Conductores con DNI y brevete.</td><td>Módulos externos</td></tr>
+    <tr><td><strong>Placas</strong></td><td>Maestros → Placas</td><td>Placas de vehículos de transporte.</td><td>Despachos externos</td></tr>
+    <tr><td><strong>Origen</strong></td><td>Maestros → Origen</td><td>Puntos de origen para recepciones externas.</td><td>Recepciones externas</td></tr>
+    <tr><td><strong>Destino</strong></td><td>Maestros → Destino</td><td>Destinos para despachos externos.</td><td>Despachos externos</td></tr>
+    <tr><td><strong>Clientes Externos</strong></td><td>Maestros → Clientes</td><td>Clientes receptores de despachos externos.</td><td>Despachos externos</td></tr>
+    <tr><td><strong>Series</strong></td><td>Maestros → Series</td><td>Series documentales para guías de remisión.</td><td>Recepciones externas</td></tr>
+  </tbody>
+</table>
+
+<h3>Agregar un registro maestro nuevo</h3>
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">Acceda a la tabla maestra correspondiente desde el submenú.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Haga clic en <span class="btn-ui verde">+ Nuevo</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">Complete los campos del formulario y haga clic en <span class="btn-ui verde">Guardar</span>.</div>
+  </div>
+</div>
+
+<div class="exito">
+  <strong>Buena práctica:</strong> Antes de registrar un nuevo vale operativo, verifique que todos los
+  datos necesarios (responsables, productos, áreas, choferes) ya existan en las tablas maestras.
+  Esto evita interrupciones durante el registro.
+</div>
+
+
+<!-- SECCIÓN 13 — BACKUP -->
+<h1 id="sec13" class="nueva-pagina">13. Respaldo de base de datos</h1>
+
+<div class="importante">
+  <strong>Solo Administradores.</strong> Se recomienda generar un respaldo diariamente o antes de cualquier proceso masivo de cambios.
+</div>
+
+<div class="paso-container">
+  <div class="paso">
+    <div class="paso-num">1</div>
+    <div class="paso-texto">En el menú lateral, haga clic en <strong>Backup</strong> o <strong>Respaldo</strong>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">2</div>
+    <div class="paso-texto">Haga clic en el botón <span class="btn-ui verde">💾 Generar Respaldo</span>.</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">3</div>
+    <div class="paso-texto">El sistema procesará la solicitud (puede tardar algunos segundos según el tamaño de la BD).</div>
+  </div>
+  <div class="paso">
+    <div class="paso-num">4</div>
+    <div class="paso-texto">Al finalizar, el navegador descargará automáticamente el archivo <code>.sql</code> con la fecha y hora en el nombre. Guárdelo en un lugar seguro.</div>
+  </div>
+</div>
+
+<div class="nota">
+  <strong>Nota:</strong> El archivo de respaldo contiene toda la estructura y datos de la base de datos. Para restaurar una copia, contacte al administrador técnico del servidor.
+</div>
+
+
+<!-- SECCIÓN 14 — FAQ -->
+<h1 id="sec14" class="nueva-pagina">14. Preguntas frecuentes y solución de problemas</h1>
+
+<h3>¿Por qué no puedo ver el módulo X en el menú?</h3>
+<p>Su rol actual no tiene el privilegio para acceder a ese módulo. Contacte al administrador del sistema para que le asigne el acceso correspondiente.</p>
+
+<h3>¿Por qué aparece el mensaje "No tiene permiso para realizar esta acción"?</h3>
+<p>Está intentando ejecutar una acción para la que no tiene el privilegio habilitado. Contacte al administrador.</p>
+
+<h3>¿Cómo recupero mi contraseña?</h3>
+<p>El sistema no tiene recuperación automática de contraseña. Contacte al administrador del sistema para que le asigne una nueva contraseña.</p>
+
+<h3>Guardé un vale pero no aparece en el listado</h3>
+<ul class="check-list">
+  <li>Verifique que la operación guardó correctamente (debió aparecer un mensaje de confirmación verde).</li>
+  <li>Revise los filtros aplicados en el listado — puede que el filtro de fechas o estado esté excluyendo el registro.</li>
+  <li>Refresque la página con F5.</li>
+  <li>Si el problema persiste, contacte al administrador técnico.</li>
+</ul>
+
+<h3>El correlativo del vale no aparece o está incorrecto</h3>
+<p>El correlativo se genera automáticamente al abrir el formulario. Si nota que el número parece repetido o salteado, refresque la página y vuelva a abrir el formulario. Si persiste, informe al administrador técnico.</p>
+
+<h3>La consulta de DNI no funciona (recepción externa)</h3>
+<ul class="check-list">
+  <li>Verifique que el DNI ingresado tenga 8 dígitos válidos.</li>
+  <li>El servicio externo puede estar temporalmente no disponible. En ese caso, ingrese manualmente el nombre y brevete del chofer.</li>
+  <li>El resultado de consultas previas queda en caché — un DNI recién emitido o actualizado puede no estar disponible aún.</li>
+</ul>
+
+<h3>El archivo Excel descargado está vacío</h3>
+<p>Verifique que existan registros con los filtros aplicados. Si el reporte en pantalla muestra registros pero el Excel está vacío, informe al administrador técnico.</p>
+
+<h3>La sesión se cierra sola</h3>
+<p>El sistema cierra la sesión automáticamente tras <strong>20 minutos de inactividad</strong>. Esto es una medida de seguridad. Inicie sesión nuevamente y continúe su trabajo.</p>
+
+<h3>¿Puedo acceder desde mi celular?</h3>
+<p>El sistema es accesible desde móviles pero está optimizado para pantallas de escritorio (1024px o más). Se recomienda usar una tablet o computadora para la operación diaria.</p>
+
+<h3>¿Cómo veo el historial de modificaciones de un vale?</h3>
+<p>Acceda al módulo de <strong>Auditoría</strong>, filtre por el número de vale o correlativo específico, y haga clic en el botón de historial para ver todas las versiones del registro.</p>
+
+<h3>Aparece un error técnico genérico en pantalla</h3>
+<ul class="warn-list">
+  <li>No intente realizar la misma operación repetidamente.</li>
+  <li>Tome nota del mensaje de error y la hora.</li>
+  <li>Contacte al administrador técnico con esa información para diagnóstico.</li>
+</ul>
+
+
+<!-- SECCIÓN 15 — GLOSARIO -->
+<h1 id="sec15" class="nueva-pagina">15. Glosario</h1>
+
+<table class="doc-table">
+  <thead><tr><th>Término</th><th>Definición</th></tr></thead>
+  <tbody>
+    <tr><td><strong>VRI</strong></td><td>Vale de Recepción Interna. Documento digital de ingreso de materiales entre áreas internas.</td></tr>
+    <tr><td><strong>VDI</strong></td><td>Vale de Despacho Interno. Documento digital de salida de productos hacia áreas internas.</td></tr>
+    <tr><td><strong>VRE</strong></td><td>Vale de Recepción Externa. Documento digital de ingreso de mercadería de proveedores externos.</td></tr>
+    <tr><td><strong>VDE</strong></td><td>Vale de Despacho Externo. Documento digital de salida de mercadería hacia clientes externos.</td></tr>
+    <tr><td><strong>Correlativo</strong></td><td>Número único e incremental asignado automáticamente a cada vale (ej: VDI-000042).</td></tr>
+    <tr><td><strong>Área</strong></td><td>División organizacional de la empresa (ej: Almacén, Producción, Distribución).</td></tr>
+    <tr><td><strong>Subárea</strong></td><td>Subdivisión de un área (ej: Almacén → Almacén Seco, Almacén Frío).</td></tr>
+    <tr><td><strong>Turno</strong></td><td>Periodo laboral: Mañana, Tarde o Noche.</td></tr>
+    <tr><td><strong>Despachador</strong></td><td>Persona responsable de entregar los productos en una operación interna.</td></tr>
+    <tr><td><strong>Verificador</strong></td><td>Supervisor que valida la operación de recepción o despacho.</td></tr>
+    <tr><td><strong>Recepcionista</strong></td><td>Persona que recibe los productos en un despacho interno.</td></tr>
+    <tr><td><strong>Transportista</strong></td><td>Empresa de transporte externo que lleva o trae mercadería.</td></tr>
+    <tr><td><strong>Brevete</strong></td><td>Licencia de conducir del chofer.</td></tr>
+    <tr><td><strong>Guía de remisión</strong></td><td>Documento legal que acompaña el traslado de mercadería. Tiene serie y número único.</td></tr>
+    <tr><td><strong>Anular</strong></td><td>Marcar un vale como inválido sin eliminarlo del sistema. Requiere motivo.</td></tr>
+    <tr><td><strong>Reactivar</strong></td><td>Restaurar un vale anulado a estado activo.</td></tr>
+    <tr><td><strong>Estado activo</strong></td><td>Vale válido y vigente en el sistema.</td></tr>
+    <tr><td><strong>Estado anulado</strong></td><td>Vale invalidado que permanece en el historial pero no se considera en las operaciones.</td></tr>
+    <tr><td><strong>Rol</strong></td><td>Conjunto de permisos asignados a un usuario que define a qué módulos y acciones puede acceder.</td></tr>
+    <tr><td><strong>Privilegio</strong></td><td>Permiso individual para realizar una acción específica en el sistema.</td></tr>
+    <tr><td><strong>Bitácora / Auditoría</strong></td><td>Registro histórico de todas las operaciones realizadas en el sistema.</td></tr>
+    <tr><td><strong>Tabla maestra</strong></td><td>Catálogo de datos fijos usados en los formularios (productos, áreas, choferes, etc.).</td></tr>
+    <tr><td><strong>Backup / Respaldo</strong></td><td>Copia de seguridad de todos los datos del sistema en formato SQL.</td></tr>
+    <tr><td><strong>Picking</strong></td><td>Proceso de preparación y recolección de productos para un despacho.</td></tr>
+  </tbody>
+</table>
+
+
+<!-- PIE DE PÁGINA -->
+<div class="pie-pagina">
+  <p>
+    <strong>Lavoro-ERP</strong> — Manual de Usuario — Versión 1.0 — Abril 2026<br>
+    Distribución autorizada al personal operativo de Lavoro.<br>
+    Desarrollado por <strong>IJE Soluciones Tecnológicas</strong> — Para soporte técnico, contacte a su proveedor.
+  </p>
+</div>
+
+</body>
+</html>

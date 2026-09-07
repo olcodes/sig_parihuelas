@@ -1,0 +1,40 @@
+/* Estilos para el autocorrector */
+.autocorrector-highlight {
+    animation: highlight-animation 1s ease;
+    border: 2px solid #fd7e14 !important;
+    box-shadow: 0 0 8px rgba(253, 126, 20, 0.5) !important;
+}
+
+.autocorrector-toast {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.autocorrector-toast.show {
+    opacity: 1;
+}
+
+.autocorrector-toast .toast-header {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.autocorrector-toast .toast-body {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.autocorrector-notificacion ul {
+    margin-top: 5px;
+}
+
+.autocorrector-notificacion li {
+    margin-bottom: 3px;
+}
+
+@keyframes highlight-animation {
+    0% { background-color: transparent; }
+    30% { background-color: #ffeeba; }
+    70% { background-color: #fff3cd; }
+    100% { background-color: transparent; }
+}

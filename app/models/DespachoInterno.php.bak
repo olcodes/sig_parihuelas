@@ -1,0 +1,384 @@
+<?php
+class DespachoInterno extends Model {
+    // Obtener un despacho por ID con todos sus datos
+    public function getById($id) {
+        try {
+            // Primero obtenemos los datos principales del despacho con JOIN a todas las tablas relacionadas
+            $sql = "SELECT di.*, 
+                    t.Turno as TurnoTexto, 
+                    a.Area as AreaTexto,
+                    s.Subarea as SubareaTexto,
+                    r1.NombresApellidos as DespachadorTexto,
+                    rec.NombresApellidos as RecepcionistaTexto,
+                    r2.NombresApellidos as VerificadorTexto
+                FROM despachos_internos di
+                LEFT JOIN turnos t ON di.Turno = t.Id
+                LEFT JOIN areas a ON di.Area = a.Id
+                LEFT JOIN subareas s ON di.Subarea = s.Id
+                LEFT JOIN responsables r1 ON di.Despachador = r1.Id
+                LEFT JOIN recepcionistas rec ON di.Recepcionista = rec.Id
+                LEFT JOIN responsables r2 ON di.Verificador = r2.Id
+                WHERE di.Id = ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            $despacho = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$despacho) {
+                return null;
+            }
+            
+            // Luego obtenemos los productos asociados a este despacho
+            $sqlProd = "SELECT * FROM despachos_internos_productos WHERE DespachoId = ?";
+            $stmtProd = $this->db->prepare($sqlProd);
+            $stmtProd->execute([$id]);
+            $productos = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Añadimos los productos al resultado
+            $despacho['Productos'] = $productos;
+            
+            return $despacho;
+        } catch (Exception $e) {
+            error_log('Error obteniendo despacho por ID: ' . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // Actualizar un despacho interno
+    public function actualizarDespacho($id, $data) {
+        // No actualizamos el campo NVale
+        $sql = "UPDATE despachos_internos SET Fecha=?, Hora=?, Turno=?, Area=?, Subarea=?, Despachador=?, Recepcionista=?, Verificador=? WHERE Id=?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            $data['Fecha'] ?? $data['fecha'] ?? '',
+            $data['Hora'] ?? $data['hora'] ?? '',  // Añadido campo Hora
+            $data['Turno'] ?? $data['turno'] ?? '',
+            $data['Area'] ?? $data['area'] ?? '',
+            $data['Subarea'] ?? $data['subarea'] ?? '',
+            $data['Despachador'] ?? $data['despachador'] ?? '',
+            $data['Recepcionista'] ?? $data['recepcionista'] ?? '',
+            $data['Verificador'] ?? $data['verificador'] ?? '',
+            $id
+        ]);
+    }
+
+    // Actualizar productos de un despacho
+    public function actualizarProductosDespacho($despachoId, $productos) {
+        try {
+            // Eliminar productos existentes
+            $sqlDelete = "DELETE FROM despachos_internos_productos WHERE DespachoId = ?";
+            $stmtDelete = $this->db->prepare($sqlDelete);
+            $stmtDelete->execute([$despachoId]);
+
+            // Insertar productos actualizados
+            if (!empty($productos)) {
+                $sqlInsert = "INSERT INTO despachos_internos_productos (DespachoId, CodigoProducto, DescripcionProducto, Cantidad, Comentarios) VALUES (?, ?, ?, ?, ?)";
+                $stmtInsert = $this->db->prepare($sqlInsert);
+                
+                foreach ($productos as $producto) {
+                    $stmtInsert->execute([
+                        $despachoId,
+                        $producto['Codigo'] ?? '',
+                        $producto['Producto'] ?? '',
+                        $producto['Cantidad'] ?? 0,
+                        strtoupper($producto['Comentarios'] ?? '')
+                    ]);
+                }
+            }
+            return true;
+        } catch (Exception $e) {
+            throw new Exception('Error al actualizar productos: ' . $e->getMessage());
+        }
+    }
+    // Reporte de despachos internos con filtros y paginación
+        // Registrar solo el despacho y retornar el ID
+        public function registrarDespacho($data) {
+            $sql = "CALL registrar_despacho_interno(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try {
+                @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "ANTES PA INSERT DESPACHO\n", FILE_APPEND);
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    $data['NVale'],
+                    $data['Fecha'],
+                    $data['Hora'],
+                    $data['Turno'],
+                    $data['Area'],
+                    $data['Subarea'],
+                    $data['Emisor'],
+                    $data['Despachador'],
+                    $data['Recepcionista'],
+                    $data['Verificador'],
+                    $data['Liquidacion'] ?? null,
+                    $data['creado_por']
+                ]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $id = $row ? $row['Id'] : null;
+                @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "DESPACHO INSERTADO ID: " . print_r($id, true) . "\n", FILE_APPEND);
+                return $id;
+            } catch (PDOException $e) {
+                @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "ERROR PA INSERT DESPACHO: " . $e->getMessage() . "\n", FILE_APPEND);
+                throw new Exception('Error MySQL: ' . $e->getMessage());
+            }
+        }
+    public function getReporte($filtros = [], $limit = 20, $offset = 0) {
+        // Verificar y registrar la información inicial
+        @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "=== INICIO getReporte ===\n", FILE_APPEND);
+        @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "Filtros recibidos: " . json_encode($filtros) . "\n", FILE_APPEND);
+        @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "Limit: $limit, Offset: $offset\n", FILE_APPEND);
+        
+        // Validar parámetros
+        $limit = (int)$limit;
+        $offset = (int)$offset;
+        $filtros = is_array($filtros) ? $filtros : [];
+        
+        $where = [];
+        $params = [];
+        
+        // Filtros dinámicos
+        if (!empty($filtros['N° Vale'])) {
+            $where[] = 'di.NVale LIKE ?';
+            $params[] = '%' . $filtros['N° Vale'] . '%';
+        }
+        if (!empty($filtros['Fecha'])) {
+            // Asegurarse de que la fecha esté en formato correcto para MySQL (YYYY-MM-DD)
+            $fecha = $filtros['Fecha'];
+            if (strpos($fecha, '-') !== false) {
+                $partesFecha = explode('-', $fecha);
+                if (count($partesFecha) === 3 && strlen($partesFecha[2]) === 4) {
+                    // Si está en formato DD-MM-YYYY, convertir a YYYY-MM-DD
+                    $fecha = "{$partesFecha[2]}-{$partesFecha[1]}-{$partesFecha[0]}";
+                }
+            }
+            $where[] = 'di.Fecha = ?';
+            $params[] = $fecha;
+        }
+        if (!empty($filtros['Hora'])) {
+            $where[] = 'di.Hora LIKE ?';
+            $params[] = '%' . $filtros['Hora'] . '%';
+        }
+        if (!empty($filtros['Área'])) {
+            $where[] = 'a.Area LIKE ?';
+            $params[] = '%' . $filtros['Área'] . '%';
+        }
+        if (!empty($filtros['Subárea'])) {
+            $where[] = 's.Subarea LIKE ?';
+            $params[] = '%' . $filtros['Subárea'] . '%';
+        }
+        if (!empty($filtros['Despachador'])) {
+            $where[] = 'r1.NombresApellidos LIKE ?';
+            $params[] = '%' . $filtros['Despachador'] . '%';
+        }
+        if (!empty($filtros['Recepcionista'])) {
+            $where[] = 'rec.NombresApellidos LIKE ?';
+            $params[] = '%' . $filtros['Recepcionista'] . '%';
+        }
+        if (!empty($filtros['Verificador'])) {
+            $where[] = 'r2.NombresApellidos LIKE ?';
+            $params[] = '%' . $filtros['Verificador'] . '%';
+        }
+        if (!empty($filtros['Turno'])) {
+            $where[] = 't.Turno LIKE ?';
+            $params[] = '%' . $filtros['Turno'] . '%';
+        }
+        if (!empty($filtros['Estado'])) {
+            $where[] = 'di.estado LIKE ?';
+            $params[] = '%' . $filtros['Estado'] . '%';
+        }
+        
+        $sqlWhere = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        // 1. Primero obtener el total de registros para paginación
+        $sqlCount = "SELECT COUNT(DISTINCT di.Id) FROM despachos_internos di 
+                    LEFT JOIN turnos t ON di.Turno = t.Id
+                    LEFT JOIN areas a ON di.Area = a.Id
+                    LEFT JOIN subareas s ON di.Subarea = s.Id
+                    LEFT JOIN responsables r1 ON di.Despachador = r1.Id
+                    LEFT JOIN recepcionistas rec ON di.Recepcionista = rec.Id
+                    LEFT JOIN responsables r2 ON di.Verificador = r2.Id
+                    $sqlWhere";
+                    
+        $stmtCount = $this->db->prepare($sqlCount);
+        $stmtCount->execute($params);
+        $total = (int)$stmtCount->fetchColumn();
+        $totalPaginas = ceil($total / $limit);
+        
+        @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "Total registros encontrados: $total, Total páginas: $totalPaginas\n", FILE_APPEND);
+        
+        // 2. Luego construir la consulta principal
+        $sql = "SELECT di.Id, di.NVale, di.Fecha, di.Hora, t.Turno as Turno,
+            COALESCE(a.Area, '') as Area,
+            COALESCE(s.Subarea, '') as Subarea,
+            COALESCE(r1.NombresApellidos, '') as Despachador,
+            COALESCE(rec.NombresApellidos, '') as Recepcionista,
+            COALESCE(r2.NombresApellidos, '') as Verificador,
+            di.estado as Estado
+            FROM despachos_internos di
+            LEFT JOIN turnos t ON di.Turno = t.Id
+            LEFT JOIN areas a ON di.Area = a.Id
+            LEFT JOIN subareas s ON di.Subarea = s.Id
+            LEFT JOIN responsables r1 ON di.Despachador = r1.Id
+            LEFT JOIN recepcionistas rec ON di.Recepcionista = rec.Id
+            LEFT JOIN responsables r2 ON di.Verificador = r2.Id
+            $sqlWhere
+            GROUP BY di.Id
+            ORDER BY di.NVale DESC
+            LIMIT $limit OFFSET $offset";
+        
+        @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "SQL Final: " . str_replace("\n", " ", $sql) . "\n", FILE_APPEND);
+        
+        // Preparar la sentencia para la consulta principal
+        try {
+            $stmt = $this->db->prepare($sql);
+        } catch (Exception $e) {
+            @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "ERROR EN PREPARACIÓN DE CONSULTA: " . $e->getMessage() . "\n", FILE_APPEND);
+            // Crear un statement dummy para evitar errores
+            $stmt = $this->db->prepare("SELECT 1");
+        }
+        try {
+            @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "Ejecutando consulta principal\n", FILE_APPEND);
+            $stmt->execute($params);
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "Consulta principal exitosa, registros obtenidos: " . count($data) . "\n", FILE_APPEND);
+            
+            // Para cada despacho, obtener los productos como array
+            foreach ($data as &$row) {
+                $sqlProd = "SELECT CodigoProducto as Codigo, DescripcionProducto as Producto, Cantidad, Comentarios FROM despachos_internos_productos WHERE DespachoId = ?";
+                $stmtProd = $this->db->prepare($sqlProd);
+                $stmtProd->execute([$row['Id']]);
+                $row['Detalles'] = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
+            }
+            
+            // Solo logear una muestra para evitar logs muy grandes
+            if (count($data) > 0) {
+                @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "Muestra del primer registro: " . json_encode($data[0]) . "\n", FILE_APPEND);
+            }
+        } catch (Exception $e) {
+            @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "ERROR SQL: " . $e->getMessage() . "\n", FILE_APPEND);
+            $data = [];
+            // Si hay un error, también reiniciar la paginación
+            $totalPaginas = 1;
+        }
+        
+        @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "Finalizando getReporte, registros devueltos: " . count($data) . ", totalPaginas: " . $totalPaginas . "\n", FILE_APPEND);
+        @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "ANTES DE RETORNAR getReporte\n", FILE_APPEND);
+        return [ 'data' => $data, 'totalPaginas' => $totalPaginas ];
+    }
+    // Obtener el siguiente número de vale disponible
+    public function obtenerSiguienteVale() {
+        $sql = "SELECT IFNULL(MAX(NVale),0)+1 AS siguiente FROM despachos_internos";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? $row['siguiente'] : 1;
+    }
+    
+    // Método para contar registros en la tabla
+    public function contarRegistros() {
+        $sql = "SELECT COUNT(*) as cantidad FROM despachos_internos";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    // Método para insertar un registro de prueba
+    public function insertarRegistroPrueba() {
+        try {
+            // Verificar que existan las tablas relacionadas necesarias
+            $fechaActual = date('Y-m-d');
+            $horaActual = date('H:i:s');
+            
+            $sql = "INSERT INTO despachos_internos 
+                    (NVale, Fecha, Hora, Turno, Area, Subarea, Emisor, Despachador, Recepcionista, Verificador, estado) 
+                    VALUES (1, ?, ?, 1, 1, 1, 'Usuario de prueba', 1, 1, 1, 'ACTIVO')";
+            
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([$fechaActual, $horaActual]);
+            
+            if ($result) {
+                $id = $this->db->lastInsertId();
+                // También insertar un producto de prueba
+                $sqlProducto = "INSERT INTO despachos_internos_productos 
+                                (DespachoId, CodigoProducto, DescripcionProducto, Cantidad, Comentarios) 
+                                VALUES (?, 'PRU001', 'Producto de prueba', 10, 'Comentario de prueba')";
+                $stmtProducto = $this->db->prepare($sqlProducto);
+                $stmtProducto->execute([$id]);
+                
+                return true;
+            }
+            return false;
+        } catch (Exception $e) {
+            @file_put_contents(__DIR__.'/../../logs/depurar_guardar.txt', "ERROR AL INSERTAR REGISTRO DE PRUEBA: " . $e->getMessage() . "\n", FILE_APPEND);
+            return false;
+        }
+    }
+    // Registrar un despacho interno
+    public function registrar($data) {
+        $sql = "CALL registrar_despacho_interno(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try {
+            return $this->query($sql, [
+                $data['NVale'],
+                $data['Fecha'],
+                $data['Hora'],
+                $data['Turno'],
+                $data['Area'],
+                $data['Subarea'],
+                $data['Emisor'],
+                $data['Despachador'],
+                $data['Recepcionista'],
+                $data['Verificador'],
+                $data['CodigoProducto'],
+                $data['DescripcionProducto'],
+                $data['Cantidad'],
+                $data['Observaciones'],
+                $data['Liquidacion'],
+                $data['creado_por']
+            ]);
+        } catch (PDOException $e) {
+            throw new Exception('Error MySQL: ' . $e->getMessage());
+        }
+    }
+
+    // Modificar un despacho interno
+    public function modificar($data) {
+        $sql = "CALL modificar_despacho_interno(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try {
+            return $this->query($sql, [
+                $data['Id'],
+                $data['NVale'],
+                $data['Fecha'],
+                $data['Hora'],
+                $data['Turno'],
+                $data['Area'],
+                $data['Subarea'],
+                $data['Emisor'],
+                $data['Despachador'],
+                $data['Recepcionista'],
+                $data['Verificador'],
+                $data['CodigoProducto'] ?? null,
+                $data['DescripcionProducto'] ?? null,
+                $data['Cantidad'] ?? null,
+                $data['Observaciones'] ?? null,
+                $data['Liquidacion'] ?? null,
+                $data['modificado_por']
+            ]);
+        } catch (PDOException $e) {
+            throw new Exception('Error MySQL: ' . $e->getMessage());
+        }
+    }
+
+    // Obtener datos completos de un despacho por ID
+    public function obtenerPorId($id) {
+        $sql = "CALL pa_despacho_interno_obtener_por_id(?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        $despacho = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$despacho) return null;
+        // Obtener productos asociados
+        $sqlProd = "CALL pa_despacho_interno_productos_por_id(?)";
+        $stmtProd = $this->db->prepare($sqlProd);
+        $stmtProd->execute([$id]);
+        $productos = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
+        $despacho['productos'] = $productos;
+        return $despacho;
+    }
+}
