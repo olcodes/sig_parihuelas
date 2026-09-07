@@ -1,0 +1,61 @@
+/* Alto compacto para combos Choices.js y selects nativos */
+/* Alto igual a textarea (38px) para selects y Choices.js */
+/* Alto igual a textarea (38px) para selects y Choices.js con máxima especificidad (aplica a externos e internos) */
+.choices,
+.choices .choices__inner,
+.choices[data-type*=select-one] .choices__inner,
+.choices__input,
+select.form-select,
+select.form-select.form-control-lg,
+.custom-dropdown,
+.select-tall,
+select,
+select.form-control,
+select.form-control-sm,
+select.form-control-lg {
+  min-height: 38px !important;
+  height: 38px !important;
+  max-height: 38px !important;
+  font-size: 1rem !important;
+  box-sizing: border-box !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  line-height: 26px !important;
+}
+.choices[data-type*=select-one] .choices__button {
+  display: none !important;
+}
+/* Opcional: igualar el alto de los selects nativos */
+select.form-select {
+  min-height: 38px !important;
+  height: 38px !important;
+  max-height: 38px !important;
+}
+
+/* Disabled appearance for Choices.js containers and sibling selects */
+.choices.is-disabled .choices__inner,
+.choices[aria-disabled="true"] .choices__inner,
+select.custom-dropdown[disabled] + .choices .choices__inner,
+select.custom-dropdown[disabled] ~ .choices .choices__inner,
+select.custom-dropdown[disabled] + .choices .choices__item,
+select.custom-dropdown[disabled] ~ .choices .choices__item {
+  background-color: #eef2f6 !important;
+  color: #6b7280 !important;
+  cursor: not-allowed !important;
+}
+.choices.is-disabled .choices__item,
+.choices[aria-disabled="true"] .choices__item {
+  color: #6b7280 !important;
+}
+
+/* Product select wrapping behaviour (muestra nombres largos) */
+#producto + .choices { display:inline-block !important; overflow:visible !important; max-width:100% !important; box-sizing:border-box !important; }
+#producto + .choices .choices__inner { height:auto !important; min-height:38px !important; overflow:visible !important; display:flex !important; flex-wrap:wrap !important; align-items:flex-start !important; padding-top:0.25rem !important; padding-bottom:0.25rem !important; box-sizing:border-box !important; }
+#producto + .choices .choices__list--single { overflow:visible !important; display:flex !important; flex-wrap:wrap !important; align-items:flex-start !important; width:100% !important; }
+#producto + .choices .choices__list--single .choices__item { white-space:normal !important; word-break:break-word !important; overflow-wrap:anywhere !important; display:inline-block !important; line-height:1.15 !important; max-width:100% !important; width:100% !important; }
+#producto + .choices .choices__inner .choices__list--single { display:block !important; }
+
+/* Forzar peso normal en el campo Área y su representación en Choices.js */
+#area, #area + .choices .choices__inner, #area + .choices .choices__list--single .choices__item {
+  font-weight: 400 !important;
+}

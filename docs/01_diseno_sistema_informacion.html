@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/1999/xhtml" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Diseño del Sistema de Información – Lavoro-ERP</title>
+
+  <!-- Mermaid para renderizado de diagramas en navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', fontSize: 13 });</script>
+
+  <style>
+    /* ===== ESTILO GENERAL ===== */
+    @page {
+      size: A4;
+      margin: 2.5cm 2.5cm 2.5cm 3cm;
+    }
+    body {
+      font-family: 'Calibri', 'Arial', sans-serif;
+      font-size: 11pt;
+      color: #1a1a1a;
+      background: #fff;
+      line-height: 1.6;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 20px 40px;
+    }
+
+    /* ===== PORTADA ===== */
+    .portada {
+      text-align: center;
+      padding: 80px 20px 60px;
+      border-bottom: 3px solid #1a3a5c;
+      page-break-after: always;
+    }
+    .portada .logo-text {
+      font-size: 36pt;
+      font-weight: 900;
+      color: #1a3a5c;
+      letter-spacing: 2px;
+    }
+    .portada .logo-sub {
+      font-size: 14pt;
+      color: #e67e22;
+      font-weight: bold;
+      margin-bottom: 60px;
+    }
+    .portada .doc-tipo {
+      font-size: 12pt;
+      color: #555;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .portada .doc-titulo {
+      font-size: 26pt;
+      font-weight: 700;
+      color: #1a3a5c;
+      margin-bottom: 10px;
+    }
+    .portada .doc-subtitulo {
+      font-size: 14pt;
+      color: #555;
+      margin-bottom: 50px;
+    }
+    .portada .meta-table {
+      margin: 40px auto;
+      border-collapse: collapse;
+      width: 70%;
+    }
+    .portada .meta-table td {
+      padding: 8px 16px;
+      border: 1px solid #ccc;
+      font-size: 10pt;
+    }
+    .portada .meta-table td:first-child {
+      font-weight: bold;
+      background: #f0f4f8;
+      width: 35%;
+    }
+    .portada .clasificacion {
+      margin-top: 40px;
+      font-size: 9pt;
+      color: #888;
+    }
+
+    /* ===== TABLA DE CONTENIDOS ===== */
+    .toc { page-break-after: always; }
+    .toc h2 { color: #1a3a5c; border-bottom: 2px solid #e67e22; padding-bottom: 6px; }
+    .toc ol { list-style: none; padding: 0; }
+    .toc ol li { padding: 4px 0; font-size: 10.5pt; }
+    .toc ol li a { text-decoration: none; color: #1a3a5c; }
+    .toc ol li a:hover { text-decoration: underline; }
+    .toc ol li.nivel2 { padding-left: 20px; font-weight: normal; color: #555; }
+    .toc ol li.nivel3 { padding-left: 40px; color: #777; font-size: 10pt; }
+
+    /* ===== TITULOS ===== */
+    h1 { font-size: 18pt; color: #1a3a5c; border-bottom: 3px solid #1a3a5c; padding-bottom: 8px; margin-top: 40px; }
+    h2 { font-size: 14pt; color: #1a3a5c; border-left: 4px solid #e67e22; padding-left: 10px; margin-top: 30px; }
+    h3 { font-size: 12pt; color: #2c5282; margin-top: 20px; }
+    h4 { font-size: 11pt; color: #555; margin-top: 16px; font-style: italic; }
+
+    /* ===== TABLAS ===== */
+    table.doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 10.5pt;
+    }
+    table.doc-table th {
+      background: #1a3a5c;
+      color: white;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: bold;
+    }
+    table.doc-table td {
+      padding: 7px 12px;
+      border: 1px solid #ccc;
+      vertical-align: top;
+    }
+    table.doc-table tr:nth-child(even) td { background: #f7f9fc; }
+    table.doc-table tr:hover td { background: #eef3f9; }
+
+    /* ===== ALERTAS / NOTAS ===== */
+    .nota {
+      background: #fff8e1;
+      border-left: 4px solid #f39c12;
+      padding: 10px 16px;
+      margin: 16px 0;
+      font-size: 10pt;
+    }
+    .importante {
+      background: #e8f4f8;
+      border-left: 4px solid #2980b9;
+      padding: 10px 16px;
+      margin: 16px 0;
+      font-size: 10pt;
+    }
+    .rf-box {
+      border: 1px solid #c8d6e5;
+      border-radius: 4px;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+    .rf-box .rf-header {
+      background: #2c5282;
+      color: white;
+      padding: 6px 14px;
+      font-size: 10pt;
+      font-weight: bold;
+    }
+    .rf-box .rf-body {
+      padding: 10px 14px;
+      font-size: 10.5pt;
+    }
+
+    /* ===== DIAGRAMAS ===== */
+    .diagrama-container {
+      background: #f9fafb;
+      border: 1px solid #dce3ed;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+    .diagrama-titulo {
+      font-size: 9.5pt;
+      color: #666;
+      margin-top: 10px;
+      font-style: italic;
+    }
+
+    /* ===== FLUJO ===== */
+    .flujo-paso {
+      display: flex;
+      align-items: flex-start;
+      margin: 10px 0;
+      gap: 14px;
+    }
+    .flujo-num {
+      background: #1a3a5c;
+      color: white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10pt;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .flujo-texto { flex: 1; padding-top: 3px; font-size: 10.5pt; }
+
+    /* ===== FOOTER ===== */
+    .pie-pagina {
+      margin-top: 60px;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+      font-size: 9pt;
+      color: #888;
+      text-align: center;
+    }
+
+    /* ===== SALTOS DE PAGINA ===== */
+    .nueva-pagina { page-break-before: always; }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { padding: 0; }
+      .portada { page-break-after: always; }
+      h1 { page-break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     PORTADA
+     ============================================================ -->
+<div class="portada">
+  <div class="logo-text">LAVORO</div>
+  <div class="logo-sub">Sistema Integrado de Gestión Logística</div>
+
+  <div class="doc-tipo">Documentación del Sistema</div>
+  <div class="doc-titulo">Diseño del Sistema de Información</div>
+  <div class="doc-subtitulo">Lavoro-ERP — Módulos de Recepciones y Despachos</div>
+
+  <table class="meta-table">
+    <tr><td>Proyecto</td><td>Lavoro-ERP</td></tr>
+    <tr><td>Versión del documento</td><td>1.0</td></tr>
+    <tr><td>Fecha de elaboración</td><td>Abril 2026</td></tr>
+    <tr><td>Estado</td><td>Final</td></tr>
+    <tr><td>Desarrollado por</td><td><strong>IJE Soluciones Tecnológicas</strong></td></tr>
+    <tr><td>Clasificación</td><td>Confidencial – Uso Interno</td></tr>
+  </table>
+
+  <div class="clasificacion">
+    Este documento contiene información técnica confidencial de Lavoro.<br>
+    Desarrollado y documentado por <strong>IJE Soluciones Tecnológicas</strong>.<br>
+    Queda prohibida su reproducción o distribución sin autorización expresa.
+  </div>
+</div>
+
+
+<!-- ============================================================
+     TABLA DE CONTENIDOS
+     ============================================================ -->
+<div class="toc">
+  <h2>Tabla de Contenidos</h2>
+  <ol>
+    <li><a href="#sec1">1. Introducción</a>
+      <ol>
+        <li class="nivel2"><a href="#sec1-1">1.1 Propósito del documento</a></li>
+        <li class="nivel2"><a href="#sec1-2">1.2 Alcance</a></li>
+        <li class="nivel2"><a href="#sec1-3">1.3 Definiciones y acrónimos</a></li>
+        <li class="nivel2"><a href="#sec1-4">1.4 Referencias</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec2">2. Descripción del Negocio y Contexto</a>
+      <ol>
+        <li class="nivel2"><a href="#sec2-1">2.1 Contexto organizacional</a></li>
+        <li class="nivel2"><a href="#sec2-2">2.2 Problema o necesidad identificada</a></li>
+        <li class="nivel2"><a href="#sec2-3">2.3 Objetivos del sistema</a></li>
+        <li class="nivel2"><a href="#sec2-4">2.4 Diagrama de contexto</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec3">3. Actores y Roles del Sistema</a></li>
+    <li><a href="#sec4">4. Requerimientos Funcionales</a>
+      <ol>
+        <li class="nivel2"><a href="#sec4-1">4.1 Módulo de Autenticación y Seguridad</a></li>
+        <li class="nivel2"><a href="#sec4-2">4.2 Módulo de Recepciones Internas</a></li>
+        <li class="nivel2"><a href="#sec4-3">4.3 Módulo de Despachos Internos</a></li>
+        <li class="nivel2"><a href="#sec4-4">4.4 Módulo de Recepciones Externas</a></li>
+        <li class="nivel2"><a href="#sec4-5">4.5 Módulo de Despachos Externos</a></li>
+        <li class="nivel2"><a href="#sec4-6">4.6 Módulo de Reportes</a></li>
+        <li class="nivel2"><a href="#sec4-7">4.7 Módulo de Auditoría</a></li>
+        <li class="nivel2"><a href="#sec4-8">4.8 Módulo de Administración</a></li>
+        <li class="nivel2"><a href="#sec4-9">4.9 Módulo de Tablas Maestras</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec5">5. Requerimientos No Funcionales</a></li>
+    <li><a href="#sec6">6. Diagrama de Casos de Uso</a></li>
+    <li><a href="#sec7">7. Especificación de Casos de Uso</a></li>
+    <li><a href="#sec8">8. Modelo Entidad–Relación Conceptual</a></li>
+    <li><a href="#sec9">9. Flujos de Proceso</a></li>
+    <li><a href="#sec10">10. Interfaz y Navegación</a></li>
+  </ol>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 1 — INTRODUCCIÓN
+     ============================================================ -->
+<h1 id="sec1">1. Introducción</h1>
+
+<h2 id="sec1-1">1.1 Propósito del documento</h2>
+<p>
+  El presente documento describe el <strong>Diseño del Sistema de Información</strong> del proyecto
+  <strong>Lavoro-ERP</strong>, un sistema web desarrollado para la empresa Lavoro con el
+  objetivo de digitalizar y centralizar los procesos de gestión logística interna y externa.
+</p>
+<p>
+  Este documento está dirigido al equipo de proyecto, al Project Manager, a los usuarios
+  responsables de la operación del sistema y a cualquier auditor técnico que requiera
+  comprender el alcance, las funcionalidades y el diseño general de la solución entregada.
+</p>
+
+<h2 id="sec1-2">1.2 Alcance</h2>
+<p>
+  El sistema cubre los siguientes módulos funcionales:
+</p>
+<ul>
+  <li><strong>Módulo de Recepciones Internas:</strong> Registro y gestión de vales de recepción interna (VRI) de materiales entre áreas de la empresa.</li>
+  <li><strong>Módulo de Despachos Internos:</strong> Registro y gestión de vales de despacho interno (VDI) de productos hacia áreas internas.</li>
+  <li><strong>Módulo de Recepciones Externas:</strong> Registro de recepciones de mercadería proveniente de proveedores o transportistas externos, incluyendo guías de remisión.</li>
+  <li><strong>Módulo de Despachos Externos:</strong> Registro y control de salidas de mercadería hacia clientes o destinos externos con trazabilidad de transporte.</li>
+  <li><strong>Módulos de soporte:</strong> Reportes, Auditoría/Bitácora, Administración de Usuarios y Roles, y Tablas Maestras.</li>
+</ul>
+<p>
+  Quedan fuera del alcance: módulos contables, facturación electrónica, control de inventario
+  en tiempo real con stock mínimo/máximo y módulos de compras o proveedores.
+</p>
+
+<h2 id="sec1-3">1.3 Definiciones y acrónimos</h2>
+<table class="doc-table">
+  <thead><tr><th>Término / Acrónimo</th><th>Definición</th></tr></thead>
+  <tbody>
+    <tr><td><strong>VRI</strong></td><td>Vale de Recepción Interna. Documento digital que registra el ingreso de materiales entre áreas internas de Lavoro.</td></tr>
+    <tr><td><strong>VDI</strong></td><td>Vale de Despacho Interno. Documento digital que registra la salida de productos hacia áreas internas.</td></tr>
+    <tr><td><strong>VRE</strong></td><td>Vale de Recepción Externa. Documento digital que registra el ingreso de mercadería de proveedores externos.</td></tr>
+    <tr><td><strong>VDE</strong></td><td>Vale de Despacho Externo. Documento digital que registra la salida de mercadería a destinos externos.</td></tr>
+    <tr><td><strong>ERP</strong></td><td>Enterprise Resource Planning. Sistema de planificación de recursos empresariales.</td></tr>
+    <tr><td><strong>MVC</strong></td><td>Modelo–Vista–Controlador. Patrón de arquitectura de software utilizado en el desarrollo.</td></tr>
+    <tr><td><strong>RF</strong></td><td>Requerimiento Funcional.</td></tr>
+    <tr><td><strong>RNF</strong></td><td>Requerimiento No Funcional.</td></tr>
+    <tr><td><strong>BD</strong></td><td>Base de Datos.</td></tr>
+    <tr><td><strong>AJAX</strong></td><td>Asynchronous JavaScript and XML. Técnica de comunicación asíncrona entre cliente y servidor.</td></tr>
+    <tr><td><strong>ROL</strong></td><td>Conjunto de permisos y privilegios asignados a un grupo de usuarios del sistema.</td></tr>
+    <tr><td><strong>Turno</strong></td><td>Periodo laboral (mañana / tarde / noche) asociado a un registro logístico.</td></tr>
+    <tr><td><strong>Subárea</strong></td><td>Subdivisión de un área organizacional. Ejemplo: Almacén → Almacén Seco.</td></tr>
+    <tr><td><strong>Correlativo</strong></td><td>Número secuencial único que identifica cada vale (VRI-000001, VDI-000001, etc.).</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec1-4">1.4 Referencias</h2>
+<table class="doc-table">
+  <thead><tr><th>Documento</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td>Modelo de Software – Lavoro-ERP v1.0</td><td>Arquitectura técnica, diagramas de clases y modelo de base de datos detallado.</td></tr>
+    <tr><td>Manual de Usuario – Lavoro-ERP v1.0</td><td>Guía de operación del sistema para usuarios finales.</td></tr>
+    <tr><td>Software Producido – Lavoro-ERP</td><td>Código fuente y sistema desplegado en producción.</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ============================================================
+     SECCIÓN 2 — DESCRIPCIÓN DEL NEGOCIO
+     ============================================================ -->
+<h1 id="sec2" class="nueva-pagina">2. Descripción del Negocio y Contexto</h1>
+
+<h2 id="sec2-1">2.1 Contexto organizacional</h2>
+<p>
+  <strong>Lavoro</strong> es una empresa dedicada a operaciones logísticas y de almacenamiento.
+  Su operación diaria involucra el movimiento constante de mercadería entre áreas internas
+  (almacenes, secciones de producción, distribución) y la recepción/despacho de materiales
+  hacia y desde proveedores y clientes externos.
+</p>
+<p>
+  Antes de la implementación de Lavoro-ERP, el registro de estas operaciones se realizaba de
+  forma manual (en papel) o mediante hojas de cálculo desconectadas, lo que generaba:
+</p>
+<ul>
+  <li>Pérdida de trazabilidad en los movimientos de mercadería.</li>
+  <li>Demoras en la consulta de información histórica.</li>
+  <li>Falta de control sobre quién realizó cada operación y cuándo.</li>
+  <li>Dificultad para generar reportes consolidados.</li>
+  <li>Riesgo de duplicación o pérdida de registros.</li>
+</ul>
+
+<h2 id="sec2-2">2.2 Problema o necesidad identificada</h2>
+<p>
+  La necesidad central que motivó el desarrollo de Lavoro-ERP fue:
+</p>
+<div class="importante">
+  <strong>Digitalizar y centralizar los procesos de registro de recepciones y despachos
+  (tanto internos como externos), garantizando trazabilidad completa, control de acceso
+  por roles y disponibilidad inmediata de reportes consolidados en tiempo real.</strong>
+</div>
+
+<h2 id="sec2-3">2.3 Objetivos del sistema</h2>
+<table class="doc-table">
+  <thead><tr><th>#</th><th>Objetivo</th><th>Tipo</th></tr></thead>
+  <tbody>
+    <tr><td>OBJ-01</td><td>Registrar digitalmente todos los vales de recepción y despacho interno con correlativo automático y trazabilidad completa.</td><td>Operacional</td></tr>
+    <tr><td>OBJ-02</td><td>Registrar digitalmente todos los vales de recepción y despacho externo, incluyendo guías de remisión y datos del transportista.</td><td>Operacional</td></tr>
+    <tr><td>OBJ-03</td><td>Controlar el acceso al sistema mediante autenticación y autorización por roles y privilegios.</td><td>Seguridad</td></tr>
+    <tr><td>OBJ-04</td><td>Generar reportes en pantalla y exportarlos a Excel con filtros por fecha, módulo, estado y más criterios.</td><td>Informacional</td></tr>
+    <tr><td>OBJ-05</td><td>Mantener una bitácora de auditoría con registro de todas las creaciones y modificaciones del sistema.</td><td>Control</td></tr>
+    <tr><td>OBJ-06</td><td>Permitir la impresión de vales en formato estándar desde el navegador.</td><td>Operacional</td></tr>
+    <tr><td>OBJ-07</td><td>Gestionar tablas maestras (productos, áreas, responsables, etc.) de forma centralizada.</td><td>Administración</td></tr>
+    <tr><td>OBJ-08</td><td>Ser accesible desde cualquier dispositivo con navegador web moderno, sin instalación adicional.</td><td>Usabilidad</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec2-4">2.4 Diagrama de contexto del sistema</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+graph LR
+    subgraph EXTERNOS["Actores Externos"]
+        A1["👤 Operador Logístico"]
+        A2["👤 Recepcionista"]
+        A3["👤 Administrador"]
+        A4["🚚 Transportista Externo<br/>(datos registrados)"]
+        A5["📦 Proveedor Externo<br/>(datos registrados)"]
+    end
+
+    subgraph SISTEMA["LAVORO-ERP"]
+        S1["Módulo Recepciones Internas"]
+        S2["Módulo Despachos Internos"]
+        S3["Módulo Recepciones Externas"]
+        S4["Módulo Despachos Externos"]
+        S5["Reportes y Exportación"]
+        S6["Auditoría / Bitácora"]
+        S7["Administración de Usuarios"]
+        S8["Tablas Maestras"]
+        S9["Base de Datos MySQL"]
+    end
+
+    A1 -->|"Registra VRI / VDI"| S1
+    A1 -->|"Registra VRI / VDI"| S2
+    A2 -->|"Registra VRE / VDE"| S3
+    A2 -->|"Registra VRE / VDE"| S4
+    A3 -->|"Gestiona usuarios y roles"| S7
+    A3 -->|"Consulta auditoría"| S6
+    A3 -->|"Gestiona maestros"| S8
+    A4 -->|"Datos del vehículo y chofer"| S3
+    A4 -->|"Datos del vehículo y chofer"| S4
+    A5 -->|"Guías de remisión"| S3
+    S1 & S2 & S3 & S4 --> S9
+    S5 -.->|"Consulta"| S9
+    S6 -.->|"Consulta"| S9
+  </div>
+  <div class="diagrama-titulo">Figura 1 – Diagrama de contexto del sistema Lavoro-ERP</div>
+</div>
+
+<div class="nota">
+  <strong>Nota para Word:</strong> Si los diagramas no se visualizan al abrir en Word, ábralos primero
+  en Google Chrome o Edge, use Ctrl+P → Guardar como PDF, o tome captura de pantalla para insertar
+  como imagen en el documento Word.
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 3 — ACTORES Y ROLES
+     ============================================================ -->
+<h1 id="sec3" class="nueva-pagina">3. Actores y Roles del Sistema</h1>
+
+<p>El sistema implementa un control de acceso basado en roles (RBAC). Cada usuario tiene un rol asignado, y cada rol puede tener múltiples privilegios. Los roles y sus responsabilidades principales son:</p>
+
+<table class="doc-table">
+  <thead>
+    <tr>
+      <th>Rol</th>
+      <th>Descripción</th>
+      <th>Privilegios principales</th>
+      <th>Acceso típico</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Administrador</strong></td>
+      <td>Gestión total del sistema, configuración de usuarios, roles y tablas maestras. Acceso a auditoría completa.</td>
+      <td>Todos los privilegios del sistema.</td>
+      <td>Total</td>
+    </tr>
+    <tr>
+      <td><strong>Operador Logístico</strong></td>
+      <td>Responsable del registro diario de recepciones y despachos internos. Puede imprimir vales.</td>
+      <td>ver/crear/editar recepciones_internas, despachos_internos, reportes_internos.</td>
+      <td>Módulos internos</td>
+    </tr>
+    <tr>
+      <td><strong>Recepcionista Externo</strong></td>
+      <td>Responsable del registro de recepciones y despachos con proveedores y clientes externos.</td>
+      <td>ver/crear/editar recepciones_externas, despachos_externos, reportes_externos.</td>
+      <td>Módulos externos</td>
+    </tr>
+    <tr>
+      <td><strong>Supervisor / Reportes</strong></td>
+      <td>Usuario con acceso de solo lectura y consulta de reportes consolidados. No puede crear ni modificar registros operativos.</td>
+      <td>ver_reportes, ver_auditoria, exportar_excel.</td>
+      <td>Solo consulta</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Jerarquía de acceso</h3>
+<div class="diagrama-container">
+  <div class="mermaid">
+graph TD
+    ADM["🔑 Administrador<br/>Acceso total"]
+    SUP["📊 Supervisor / Reportes<br/>Solo lectura + reportes"]
+    OPL["📋 Operador Logístico<br/>Módulos internos"]
+    REC["🚚 Recepcionista Externo<br/>Módulos externos"]
+
+    ADM --> SUP
+    ADM --> OPL
+    ADM --> REC
+
+    style ADM fill:#1a3a5c,color:#fff
+    style SUP fill:#2980b9,color:#fff
+    style OPL fill:#27ae60,color:#fff
+    style REC fill:#e67e22,color:#fff
+  </div>
+  <div class="diagrama-titulo">Figura 2 – Jerarquía de roles del sistema</div>
+</div>
+
+<div class="importante">
+  El sistema permite que el Administrador cree roles personalizados y asigne individualmente
+  cada privilegio, por lo que los roles descritos son los más comunes pero no los únicos posibles.
+</div>
+
+<!-- ============================================================
+     SECCIÓN 4 — REQUERIMIENTOS FUNCIONALES
+     ============================================================ -->
+<h1 id="sec4" class="nueva-pagina">4. Requerimientos Funcionales</h1>
+
+<p>Los requerimientos funcionales están organizados por módulo y numerados de forma correlativa.</p>
+
+<!-- 4.1 -->
+<h2 id="sec4-1">4.1 Módulo de Autenticación y Seguridad</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-01 — Inicio de sesión con credenciales</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema debe permitir a los usuarios autenticarse mediante nombre de usuario y contraseña.<br>
+    <strong>Actores:</strong> Todos los usuarios.<br>
+    <strong>Flujo principal:</strong> El usuario ingresa credenciales → El sistema valida contra la BD → Si son correctas, inicia sesión y redirige al inicio.<br>
+    <strong>Flujo alternativo:</strong> Si las credenciales son incorrectas, se muestra mensaje de error sin revelar cuál campo es incorrecto.<br>
+    <strong>Notas:</strong> La contraseña se almacena con hash seguro (bcrypt mediante <code>password_hash()</code>).
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-02 — Cierre de sesión</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El usuario puede cerrar su sesión de forma explícita desde el menú de perfil.<br>
+    <strong>Actores:</strong> Todos los usuarios.<br>
+    <strong>Notas:</strong> Se destruyen todas las variables de sesión del servidor.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-03 — Cierre de sesión automático por inactividad</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema cierra automáticamente la sesión tras un período de inactividad, mostrando un mensaje de aviso al usuario.<br>
+    <strong>Actores:</strong> Todos los usuarios.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-04 — Control de acceso basado en privilegios</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Cada funcionalidad del sistema verifica que el usuario tenga el privilegio correspondiente antes de mostrar el módulo o ejecutar la acción.<br>
+    <strong>Actores:</strong> Sistema (automático).<br>
+    <strong>Notas:</strong> Si el usuario no tiene el privilegio, se muestra mensaje de acceso denegado.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-05 — Protección de rutas no autenticadas</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Cualquier intento de acceso a una URL del sistema sin sesión activa redirige al inicio de sesión.<br>
+    <strong>Actores:</strong> Sistema (automático).
+  </div>
+</div>
+
+<!-- 4.2 -->
+<h2 id="sec4-2">4.2 Módulo de Recepciones Internas</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-06 — Registro de recepción interna</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema permite registrar un nuevo Vale de Recepción Interna (VRI) con sus datos de cabecera y lista de productos.<br>
+    <strong>Datos de cabecera:</strong> Correlativo automático (VRI-XXXXXX), fecha, hora, turno, área, subárea, despachador, verificador, medio de transporte, N° de liquidación.<br>
+    <strong>Datos de detalle:</strong> Código de producto, descripción, unidad de medida, cantidad, comentarios (uno o más productos por vale).<br>
+    <strong>Actores:</strong> Operador Logístico, Administrador.<br>
+    <strong>Reglas:</strong> El correlativo se genera automáticamente y es único. El sistema registra quién creó el vale y desde qué IP.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-07 — Consulta y listado de recepciones internas</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema muestra un listado paginado de todos los VRI registrados con opción de búsqueda y filtrado por fecha, estado y correlativo.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-08 — Modificación de recepción interna</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Los vales VRI pueden ser modificados siempre que estén en estado activo. El sistema registra cada modificación en la bitácora.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-09 — Anulación de recepción interna</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Un VRI puede ser anulado indicando un motivo. El vale queda marcado como anulado pero no se elimina de la BD (no se borra, solo cambia estado).
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-10 — Impresión de vale de recepción interna</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema genera una vista imprimible del VRI en formato A4, incluyendo todos los datos del encabezado, la lista de productos y espacios para firmas.
+  </div>
+</div>
+
+<!-- 4.3 -->
+<h2 id="sec4-3">4.3 Módulo de Despachos Internos</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-11 — Registro de despacho interno</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema permite registrar un nuevo Vale de Despacho Interno (VDI).<br>
+    <strong>Datos de cabecera:</strong> Correlativo automático (VDI-XXXXXX), fecha, hora, turno, área, subárea, despachador, recepcionista, verificador.<br>
+    <strong>Datos de detalle:</strong> Código de producto, descripción, unidad de medida, cantidad, comentarios.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-12 — Consulta y listado de despachos internos</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Listado paginado con filtros de búsqueda por fecha, estado, correlativo y área.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-13 — Modificación con límite de versiones</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Los VDI pueden ser modificados hasta un número máximo de veces configurable. El sistema valida el límite antes de permitir la modificación e informa cuántas modificaciones han sido realizadas.<br>
+    <strong>Reglas:</strong> Al alcanzar el límite, el sistema bloquea modificaciones adicionales.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-14 — Anulación y reactivación de despacho interno</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Un VDI puede ser anulado con motivo y posteriormente reactivado si el usuario tiene el privilegio correspondiente.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-15 — Impresión de vale de despacho interno</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Vista imprimible del VDI con datos completos y firmas del despachador, recepcionista y verificador.
+  </div>
+</div>
+
+<!-- 4.4 -->
+<h2 id="sec4-4">4.4 Módulo de Recepciones Externas</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-16 — Registro de recepción externa</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema permite registrar un VRE con datos del vehículo y transportista.<br>
+    <strong>Datos de cabecera:</strong> Correlativo (VRE-XXXXXX), fecha, hora, turno, origen, recepcionista, empresa transportista, RUC, chofer, brevete, comentarios.<br>
+    <strong>Datos de guías:</strong> Una recepción puede tener múltiples guías de remisión, cada una con su serie, número y lista de productos asociados.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-17 — Consulta API externa de DNI / Carnet (Factiliza)</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Al ingresar el DNI del chofer, el sistema consulta automáticamente una API externa (Factiliza) para autocompletar nombre y brevete.<br>
+    <strong>Notas:</strong> Los resultados se cachean localmente para reducir llamadas a la API.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-18 — Gestión de guías de remisión</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Cada VRE puede contener N guías de remisión. Cada guía tiene serie, número y N productos asociados con cantidad y unidad de medida.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-19 — Modificación de recepción externa</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Los datos del VRE pueden ser modificados desde la vista de reporte, incluyendo actualización de productos específicos sin modificar los demás.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-20 — Anulación de recepción externa</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Un VRE puede ser anulado con registro del motivo y del usuario que realizó la anulación.
+  </div>
+</div>
+
+<!-- 4.5 -->
+<h2 id="sec4-5">4.5 Módulo de Despachos Externos</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-21 — Registro de despacho externo</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Registro de salida de mercadería a destinos externos.<br>
+    <strong>Datos:</strong> Correlativo (VDE-XXXXXX), fecha, turno, destino, cliente externo, transportista, chofer, placa, hora de salida, productos con cantidades.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-22 — Validación de límite de modificaciones</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Similar al módulo interno, los VDE tienen un límite de modificaciones permitidas con validación explícita.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-23 — Anulación y reactivación de despacho externo</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Un VDE puede ser anulado indicando motivo y reactivado por usuarios con privilegio específico.
+  </div>
+</div>
+
+<!-- 4.6 -->
+<h2 id="sec4-6">4.6 Módulo de Reportes</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-24 — Reportes por módulo con filtros</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema genera reportes de cada módulo (Despachos Internos, Recepciones Internas, Recepciones Externas, Despachos Externos) con filtros por rango de fechas, estado (activo/anulado) y otros criterios específicos.<br>
+    <strong>Vistas disponibles:</strong> Despachos Internos, Recepciones Internas, Recepciones Externas, Despachos Externos, Reporte Consolidado, Reporte Picking, Liquidadas.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-25 — Exportación a Excel</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Cualquier reporte puede ser exportado a formato Excel (.xlsx) con encabezados formateados, usando la librería PhpSpreadsheet.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-26 — Edición en línea desde reportes</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Desde la vista de reportes, los usuarios autorizados pueden editar productos específicos de un vale sin necesidad de abrir el formulario completo de edición.
+  </div>
+</div>
+
+<!-- 4.7 -->
+<h2 id="sec4-7">4.7 Módulo de Auditoría</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-27 — Bitácora consolidada de operaciones</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El sistema mantiene un log centralizado de todas las operaciones de creación y modificación de los 4 módulos principales, con información de usuario, fecha/hora, IP y datos del registro afectado.<br>
+    <strong>Filtros disponibles:</strong> Módulo, acción (creación/modificación), usuario, rango de fechas, N° de vale.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-28 — Historial de versiones por registro</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> Al consultar la bitácora, el usuario puede ver el historial completo de modificaciones de un registro específico (comparativa de versiones).
+  </div>
+</div>
+
+<!-- 4.8 -->
+<h2 id="sec4-8">4.8 Módulo de Administración de Usuarios y Roles</h2>
+
+<div class="rf-box">
+  <div class="rf-header">RF-29 — CRUD de usuarios</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El administrador puede crear, consultar, editar y desactivar usuarios. Incluye asignación de rol, documento de identidad y nombre completo.
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-30 — CRUD de roles y asignación de privilegios</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El administrador puede crear roles y asignar a cada rol los privilegios específicos del sistema (granularidad a nivel de acción).
+  </div>
+</div>
+
+<div class="rf-box">
+  <div class="rf-header">RF-31 — Exportación de usuarios a Excel</div>
+  <div class="rf-body">
+    <strong>Descripción:</strong> El listado de usuarios puede exportarse a Excel con todos sus datos (excepto contraseñas).
+  </div>
+</div>
+
+<!-- 4.9 -->
+<h2 id="sec4-9">4.9 Módulo de Tablas Maestras</h2>
+
+<p>El sistema gestiona las siguientes tablas maestras a través de interfaces CRUD independientes:</p>
+
+<table class="doc-table">
+  <thead><tr><th>Tabla maestra</th><th>Descripción</th><th>Módulos que la usan</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Productos</strong></td><td>Catálogo de productos con código, descripción y unidad de medida.</td><td>Todos</td></tr>
+    <tr><td><strong>Áreas</strong></td><td>Áreas organizacionales de la empresa (Almacén, Producción, etc.).</td><td>Internos</td></tr>
+    <tr><td><strong>Subáreas</strong></td><td>Subdivisiones de cada área, vinculadas jerárquicamente.</td><td>Internos</td></tr>
+    <tr><td><strong>Responsables</strong></td><td>Personal que actúa como despachador o verificador en operaciones internas.</td><td>Internos</td></tr>
+    <tr><td><strong>Recepcionistas</strong></td><td>Personal asignado como recepcionista en despachos internos y externos.</td><td>Internos / Externos</td></tr>
+    <tr><td><strong>Transportistas</strong></td><td>Empresas de transporte (RUC, razón social) para operaciones externas.</td><td>Externos</td></tr>
+    <tr><td><strong>Choferes</strong></td><td>Conductores con DNI y número de brevete, vinculados a transportistas.</td><td>Externos</td></tr>
+    <tr><td><strong>Placas</strong></td><td>Placas de vehículos de transporte.</td><td>Externos</td></tr>
+    <tr><td><strong>Origen</strong></td><td>Orígenes de las recepciones externas (almacenes de origen, plantas).</td><td>Externos</td></tr>
+    <tr><td><strong>Destino</strong></td><td>Destinos para los despachos externos.</td><td>Externos</td></tr>
+    <tr><td><strong>Clientes Externos</strong></td><td>Clientes que reciben despachos externos.</td><td>Externos</td></tr>
+    <tr><td><strong>Series</strong></td><td>Series documentales para guías de remisión.</td><td>Externos</td></tr>
+    <tr><td><strong>Turnos</strong></td><td>Turnos de trabajo (Mañana / Tarde / Noche).</td><td>Todos</td></tr>
+    <tr><td><strong>Medios de Transporte</strong></td><td>Tipos de transporte utilizados en recepciones internas.</td><td>Internos</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ============================================================
+     SECCIÓN 5 — REQUERIMIENTOS NO FUNCIONALES
+     ============================================================ -->
+<h1 id="sec5" class="nueva-pagina">5. Requerimientos No Funcionales</h1>
+
+<table class="doc-table">
+  <thead>
+    <tr><th>#</th><th>Categoría</th><th>Requerimiento</th><th>Criterio de aceptación</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>RNF-01</td><td>Rendimiento</td>
+      <td>Las páginas de listado y formularios deben cargarse en menos de 3 segundos bajo condiciones normales de red.</td>
+      <td>Medición con herramientas de desarrollo del navegador en red LAN.</td>
+    </tr>
+    <tr>
+      <td>RNF-02</td><td>Disponibilidad</td>
+      <td>El sistema debe estar disponible 24/7 con una disponibilidad mínima del 99% mensual.</td>
+      <td>Monitoreo de uptime del servidor de hosting.</td>
+    </tr>
+    <tr>
+      <td>RNF-03</td><td>Seguridad</td>
+      <td>Todas las contraseñas deben almacenarse con hash bcrypt. Las consultas a BD deben usar sentencias preparadas (PDO) para prevenir inyección SQL.</td>
+      <td>Revisión de código fuente. Sin contraseñas en texto plano en BD.</td>
+    </tr>
+    <tr>
+      <td>RNF-04</td><td>Seguridad</td>
+      <td>Todas las salidas de datos hacia HTML deben estar escapadas (htmlspecialchars) para prevenir XSS.</td>
+      <td>Revisión de vistas. Sin scripts ejecutables inyectados.</td>
+    </tr>
+    <tr>
+      <td>RNF-05</td><td>Usabilidad</td>
+      <td>La interfaz debe ser responsiva y funcional en resoluciones de escritorio (1024px+) y tablets (768px+).</td>
+      <td>Pruebas en Chrome y Edge en distintas resoluciones.</td>
+    </tr>
+    <tr>
+      <td>RNF-06</td><td>Mantenibilidad</td>
+      <td>El código debe seguir la arquitectura MVC definida, con separación clara de responsabilidades entre controladores, modelos y vistas.</td>
+      <td>Revisión de estructura de carpetas y archivos.</td>
+    </tr>
+    <tr>
+      <td>RNF-07</td><td>Portabilidad</td>
+      <td>El sistema debe ser desplegable tanto en entorno local (WAMP/XAMPP) como en hosting compartido o VPS con PHP 7.4+ y MySQL 5.7+.</td>
+      <td>Despliegue verificado en ambos entornos.</td>
+    </tr>
+    <tr>
+      <td>RNF-08</td><td>Trazabilidad</td>
+      <td>Toda operación de creación y modificación debe quedar registrada en la bitácora de auditoría con usuario, fecha/hora e IP.</td>
+      <td>Verificación en módulo de auditoría tras cada operación.</td>
+    </tr>
+    <tr>
+      <td>RNF-09</td><td>Integridad</td>
+      <td>Los registros nunca se eliminan físicamente (eliminación lógica mediante campo estado). Se preserva el historial completo.</td>
+      <td>Verificación en BD: registros anulados permanecen con estado='anulado'.</td>
+    </tr>
+    <tr>
+      <td>RNF-10</td><td>Compatibilidad</td>
+      <td>El sistema debe funcionar correctamente en Google Chrome 90+, Mozilla Firefox 88+ y Microsoft Edge 90+.</td>
+      <td>Pruebas funcionales en los navegadores indicados.</td>
+    </tr>
+    <tr>
+      <td>RNF-11</td><td>Escalabilidad</td>
+      <td>La arquitectura debe soportar la incorporación de nuevos módulos sin modificar la estructura base del framework MVC.</td>
+      <td>El router y el framework base son genéricos y no dependen de módulos específicos.</td>
+    </tr>
+    <tr>
+      <td>RNF-12</td><td>Backup</td>
+      <td>El sistema debe incluir funcionalidad de respaldo de la base de datos ejecutable desde la interfaz de administración.</td>
+      <td>Generación exitosa de archivo SQL de respaldo.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ============================================================
+     SECCIÓN 6 — DIAGRAMA DE CASOS DE USO
+     ============================================================ -->
+<h1 id="sec6" class="nueva-pagina">6. Diagrama de Casos de Uso</h1>
+
+<h2>6.1 Casos de uso — Visión general</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+graph LR
+    ADM(("Administrador"))
+    OPL(("Operador\nLogístico"))
+    REC(("Recepcionista\nExterno"))
+    SUP(("Supervisor"))
+
+    UC01["Autenticar en el sistema"]
+    UC02["Gestionar Recepciones Internas\n(VRI)"]
+    UC03["Gestionar Despachos Internos\n(VDI)"]
+    UC04["Gestionar Recepciones Externas\n(VRE)"]
+    UC05["Gestionar Despachos Externos\n(VDE)"]
+    UC06["Consultar Reportes"]
+    UC07["Exportar a Excel"]
+    UC08["Consultar Auditoría / Bitácora"]
+    UC09["Administrar Usuarios y Roles"]
+    UC10["Gestionar Tablas Maestras"]
+    UC11["Realizar Backup de BD"]
+
+    ADM --- UC01
+    ADM --- UC02
+    ADM --- UC03
+    ADM --- UC04
+    ADM --- UC05
+    ADM --- UC06
+    ADM --- UC07
+    ADM --- UC08
+    ADM --- UC09
+    ADM --- UC10
+    ADM --- UC11
+
+    OPL --- UC01
+    OPL --- UC02
+    OPL --- UC03
+    OPL --- UC06
+
+    REC --- UC01
+    REC --- UC04
+    REC --- UC05
+    REC --- UC06
+
+    SUP --- UC01
+    SUP --- UC06
+    SUP --- UC07
+    SUP --- UC08
+  </div>
+  <div class="diagrama-titulo">Figura 3 – Diagrama de casos de uso general del sistema Lavoro-ERP</div>
+</div>
+
+<h2>6.2 Casos de uso — Módulo de Recepciones Internas</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+graph LR
+    OPL(("Operador\nLogístico"))
+    UC_RI_01["Registrar nueva recepción interna"]
+    UC_RI_02["Consultar listado de VRI"]
+    UC_RI_03["Buscar y filtrar VRI"]
+    UC_RI_04["Ver detalle de VRI"]
+    UC_RI_05["Modificar VRI existente"]
+    UC_RI_06["Anular VRI"]
+    UC_RI_07["Imprimir VRI"]
+
+    OPL --- UC_RI_01
+    OPL --- UC_RI_02
+    OPL --- UC_RI_03
+    OPL --- UC_RI_04
+    OPL --- UC_RI_05
+    OPL --- UC_RI_06
+    OPL --- UC_RI_07
+
+    UC_RI_01 -.->|"incluye"| UC_RI_GEN["Generar correlativo\nautomático"]
+    UC_RI_05 -.->|"incluye"| UC_AUD["Registrar en\nautitoría"]
+    UC_RI_01 -.->|"incluye"| UC_AUD
+  </div>
+  <div class="diagrama-titulo">Figura 4 – Casos de uso del módulo de Recepciones Internas</div>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 7 — ESPECIFICACIÓN DE CASOS DE USO
+     ============================================================ -->
+<h1 id="sec7" class="nueva-pagina">7. Especificación de Casos de Uso</h1>
+
+<h3>CU-01 — Registrar Vale de Recepción Interna (VRI)</h3>
+<table class="doc-table">
+  <tr><td style="width:30%;font-weight:bold">Identificador</td><td>CU-01</td></tr>
+  <tr><td><strong>Nombre</strong></td><td>Registrar Vale de Recepción Interna</td></tr>
+  <tr><td><strong>Actor principal</strong></td><td>Operador Logístico</td></tr>
+  <tr><td><strong>Actores secundarios</strong></td><td>Sistema (genera correlativo, registra auditoría)</td></tr>
+  <tr><td><strong>Precondiciones</strong></td><td>El usuario debe estar autenticado y tener el privilegio <em>crear_recepciones_internas</em>.</td></tr>
+  <tr><td><strong>Flujo principal</strong></td>
+    <td>
+      1. El usuario navega al módulo de Recepciones Internas.<br>
+      2. El sistema muestra el formulario de nueva recepción y genera automáticamente el correlativo siguiente (VRI-XXXXXX).<br>
+      3. El usuario selecciona: turno, área, subárea, despachador, verificador, medio de transporte.<br>
+      4. Opcionalmente ingresa N° de liquidación.<br>
+      5. El usuario agrega uno o más productos con: código, descripción, unidad de medida, cantidad y comentarios.<br>
+      6. El usuario hace clic en "Guardar".<br>
+      7. El sistema valida los datos, inserta el registro en la BD y registra la acción en la bitácora de auditoría.<br>
+      8. El sistema muestra confirmación de éxito con el correlativo asignado.
+    </td>
+  </tr>
+  <tr><td><strong>Flujos alternativos</strong></td>
+    <td>
+      <strong>3a.</strong> Si el usuario no ha seleccionado un área/subárea, el sistema muestra error de validación.<br>
+      <strong>5a.</strong> Si no se agrega ningún producto, el sistema advierte que debe incluir al menos uno.<br>
+      <strong>7a.</strong> Si la BD no está disponible, el sistema muestra error técnico genérico.
+    </td>
+  </tr>
+  <tr><td><strong>Postcondiciones</strong></td><td>El VRI queda registrado en estado "activo" con correlativo único, fecha/hora y datos del creador.</td></tr>
+</table>
+
+<br>
+
+<h3>CU-02 — Registrar Vale de Recepción Externa (VRE)</h3>
+<table class="doc-table">
+  <tr><td style="width:30%;font-weight:bold">Identificador</td><td>CU-02</td></tr>
+  <tr><td><strong>Nombre</strong></td><td>Registrar Vale de Recepción Externa</td></tr>
+  <tr><td><strong>Actor principal</strong></td><td>Recepcionista Externo</td></tr>
+  <tr><td><strong>Precondiciones</strong></td><td>Usuario autenticado con privilegio <em>crear_recepciones_externas</em>. El chofer y transportista deben existir en las tablas maestras o ser ingresados con DNI para consulta a API externa.</td></tr>
+  <tr><td><strong>Flujo principal</strong></td>
+    <td>
+      1. El usuario navega al módulo de Recepciones Externas.<br>
+      2. El sistema muestra el formulario y el correlativo siguiente (VRE-XXXXXX).<br>
+      3. El usuario ingresa: turno, origen, recepcionista, empresa transportista, RUC, DNI del chofer.<br>
+      4. Al ingresar el DNI, el sistema consulta la API Factiliza y autocompleta nombre y brevete.<br>
+      5. El usuario agrega una o más guías de remisión con su serie y número.<br>
+      6. Para cada guía, el usuario agrega los productos recibidos.<br>
+      7. El usuario guarda la recepción.<br>
+      8. El sistema inserta los registros en las tablas <code>recepciones_externas</code>, <code>recepciones_externas_guias</code> y <code>recepciones_externas_productos</code>.<br>
+      9. El sistema registra la operación en auditoría.
+    </td>
+  </tr>
+  <tr><td><strong>Flujos alternativos</strong></td>
+    <td>
+      <strong>4a.</strong> Si la API no responde, el usuario ingresa manualmente el nombre y brevete del chofer.<br>
+      <strong>6a.</strong> Si no se agregan productos, el sistema advierte e impide el guardado.
+    </td>
+  </tr>
+  <tr><td><strong>Postcondiciones</strong></td><td>VRE registrado con estado "activo" y todas sus guías y productos asociados.</td></tr>
+</table>
+
+
+<!-- ============================================================
+     SECCIÓN 8 — MODELO ENTIDAD–RELACIÓN CONCEPTUAL
+     ============================================================ -->
+<h1 id="sec8" class="nueva-pagina">8. Modelo Entidad–Relación Conceptual</h1>
+
+<p>
+  El siguiente diagrama representa las entidades principales del sistema y sus relaciones
+  a nivel conceptual. El modelo físico detallado con tipos de datos se encuentra en el
+  documento <em>Modelo de Software</em>.
+</p>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+erDiagram
+    USUARIO {
+        int Id
+        string username
+        string password
+        string DocIdentidad
+        string NombresApellidos
+        int RoleId
+    }
+    ROLE {
+        int Id
+        string Nombre
+        string Descripcion
+    }
+    PRIVILEGIO {
+        int Id
+        string Nombre
+        string Descripcion
+    }
+    ROLE_PRIVILEGIO {
+        int RoleId
+        int PrivilegioId
+    }
+    RECEPCION_INTERNA {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Area
+        int Subarea
+        int Despachador
+        int Verificador
+        int MedioTransporte
+        string NLiquidacion
+        string estado
+        int creado_por
+    }
+    RECEPCION_INTERNA_PRODUCTO {
+        int Id
+        int DespachoId
+        string CodigoProducto
+        string DescripcionProducto
+        string UnidadMedida
+        decimal Cantidad
+        string Comentarios
+    }
+    DESPACHO_INTERNO {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Area
+        int Subarea
+        int Despachador
+        int Recepcionista
+        int Verificador
+        string estado
+        int creado_por
+    }
+    DESPACHO_INTERNO_PRODUCTO {
+        int Id
+        int DespachoId
+        string CodigoProducto
+        string DescripcionProducto
+        string UnidadMedida
+        decimal Cantidad
+        string Comentarios
+    }
+    RECEPCION_EXTERNA {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Origen
+        int Recepcionista
+        string Empresa
+        string RUC
+        int Chofer
+        string estado
+        int creado_por
+    }
+    RECEPCION_EXTERNA_GUIA {
+        int Id
+        int RecepcionId
+        int SerieId
+        string NumeroGuia
+    }
+    RECEPCION_EXTERNA_PRODUCTO {
+        int Id
+        int GuiaId
+        string CodigoProducto
+        decimal Cantidad
+        string UnidadMedida
+    }
+    DESPACHO_EXTERNO {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Destino
+        int ClienteExterno
+        int Transportista
+        int Chofer
+        int Placa
+        string estado
+        int creado_por
+    }
+    PRODUCTO {
+        int Id
+        string Codigo
+        string Descripcion
+        string UnidadMedida
+        string estado
+    }
+    AREA {
+        int Id
+        string Area
+    }
+    SUBAREA {
+        int Id
+        string Subarea
+        int AreaId
+    }
+    RESPONSABLE {
+        int Id
+        string NombresApellidos
+        string Cargo
+    }
+    TRANSPORTISTA {
+        int Id
+        string RUC
+        string Empresa
+    }
+    CHOFER {
+        int Id
+        string ApellidosNombres
+        string DNI
+        string Brevete
+    }
+
+    USUARIO }o--|| ROLE : "tiene"
+    ROLE ||--|{ ROLE_PRIVILEGIO : "tiene"
+    PRIVILEGIO ||--|{ ROLE_PRIVILEGIO : "incluye"
+    RECEPCION_INTERNA ||--|{ RECEPCION_INTERNA_PRODUCTO : "contiene"
+    DESPACHO_INTERNO ||--|{ DESPACHO_INTERNO_PRODUCTO : "contiene"
+    RECEPCION_EXTERNA ||--|{ RECEPCION_EXTERNA_GUIA : "incluye"
+    RECEPCION_EXTERNA_GUIA ||--|{ RECEPCION_EXTERNA_PRODUCTO : "detalla"
+    AREA ||--|{ SUBAREA : "tiene"
+    TRANSPORTISTA ||--|{ CHOFER : "emplea"
+  </div>
+  <div class="diagrama-titulo">Figura 5 – Modelo Entidad–Relación conceptual del sistema Lavoro-ERP</div>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 9 — FLUJOS DE PROCESO
+     ============================================================ -->
+<h1 id="sec9" class="nueva-pagina">9. Flujos de Proceso</h1>
+
+<h2>9.1 Flujo general de operación logística</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+flowchart TD
+    A([Inicio: Llegada de mercadería o\nrequerimiento de movimiento]) --> B{¿Es movimiento\ninterno o externo?}
+    B -->|Interno| C{¿Recepción\no Despacho?}
+    B -->|Externo| D{¿Recepción\no Despacho?}
+    C -->|Recepción| E[Registrar VRI en\nRec. Internas]
+    C -->|Despacho| F[Registrar VDI en\nDespachos Internos]
+    D -->|Recepción| G[Registrar VRE en\nRec. Externas\n+guías de remisión]
+    D -->|Despacho| H[Registrar VDE en\nDespachos Externos\n+datos de transporte]
+    E --> I[Sistema genera correlativo\nautomático]
+    F --> I
+    G --> I
+    H --> I
+    I --> J[Usuario completa formulario\ncon productos]
+    J --> K{¿Datos\nválidos?}
+    K -->|No| J
+    K -->|Sí| L[Sistema guarda en BD\ny registra en auditoría]
+    L --> M[Confirmación de éxito\n+ Opción de imprimir vale]
+    M --> N([Fin])
+  </div>
+  <div class="diagrama-titulo">Figura 6 – Flujo general de operación logística en Lavoro-ERP</div>
+</div>
+
+<h2>9.2 Flujo de registro de Recepción Externa (VRE)</h2>
+
+<div class="flujo-paso">
+  <div class="flujo-num">1</div>
+  <div class="flujo-texto"><strong>Apertura del formulario:</strong> El usuario accede al módulo de Recepciones Externas. El sistema carga automáticamente el siguiente correlativo disponible (VRE-XXXXXX), la fecha actual y la hora del sistema.</div>
+</div>
+<div class="flujo-paso">
+  <div class="flujo-num">2</div>
+  <div class="flujo-texto"><strong>Ingreso de datos del transportista:</strong> El usuario selecciona el origen, turno y recepcionista, e ingresa el RUC/empresa del transportista. Puede seleccionarlo del combo o buscarlo.</div>
+</div>
+<div class="flujo-paso">
+  <div class="flujo-num">3</div>
+  <div class="flujo-texto"><strong>Consulta de DNI del chofer (API):</strong> El usuario ingresa el DNI del chofer. El sistema consulta la API Factiliza en tiempo real y autocompleta nombre completo y número de brevete. Si la API falla, el usuario lo ingresa manualmente.</div>
+</div>
+<div class="flujo-paso">
+  <div class="flujo-num">4</div>
+  <div class="flujo-texto"><strong>Registro de guías de remisión:</strong> El usuario agrega las guías de remisión asociadas a la recepción (serie + número). Puede agregar múltiples guías por vale.</div>
+</div>
+<div class="flujo-paso">
+  <div class="flujo-num">5</div>
+  <div class="flujo-texto"><strong>Detalle de productos por guía:</strong> Para cada guía, el usuario ingresa los productos recibidos: código (búsqueda en catálogo), descripción, unidad de medida y cantidad.</div>
+</div>
+<div class="flujo-paso">
+  <div class="flujo-num">6</div>
+  <div class="flujo-texto"><strong>Guardado:</strong> El sistema valida todos los datos, realiza la inserción en tres tablas (VRE, guías, productos) dentro de una transacción. Si alguna falla, se revierte todo.</div>
+</div>
+<div class="flujo-paso">
+  <div class="flujo-num">7</div>
+  <div class="flujo-texto"><strong>Confirmación y registro en auditoría:</strong> El sistema retorna un JSON con éxito, muestra la confirmación al usuario y registra automáticamente la acción en la bitácora (módulo, usuario, IP, timestamp).</div>
+</div>
+
+<h2>9.3 Flujo del sistema de autenticación</h2>
+<div class="diagrama-container">
+  <div class="mermaid">
+sequenceDiagram
+    actor U as Usuario
+    participant V as Vista Login
+    participant C as LoginController
+    participant M as Model: User
+    participant BD as Base de Datos
+
+    U->>V: Ingresa usuario y contraseña
+    V->>C: POST /login/auth
+    C->>M: findByUsername($username)
+    M->>BD: SELECT * FROM usuarios WHERE username = ?
+    BD-->>M: Resultado
+    M-->>C: Datos del usuario (o null)
+    C->>C: password_verify($password, $hash)
+    alt Credenciales correctas
+        C->>C: Cargar privilegios del rol
+        C->>C: Guardar sesión ($_SESSION)
+        C-->>V: redirect('/')
+    else Credenciales incorrectas
+        C-->>V: Vista con error genérico
+    end
+  </div>
+  <div class="diagrama-titulo">Figura 7 – Diagrama de secuencia del proceso de autenticación</div>
+</div>
+
+
+<!-- ============================================================
+     SECCIÓN 10 — INTERFAZ Y NAVEGACIÓN
+     ============================================================ -->
+<h1 id="sec10" class="nueva-pagina">10. Interfaz y Navegación</h1>
+
+<h2>10.1 Estructura de la interfaz</h2>
+<p>La interfaz del sistema sigue un diseño consistente basado en Bootstrap 5 con los siguientes componentes permanentes:</p>
+
+<table class="doc-table">
+  <thead><tr><th>Zona</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Barra de navegación superior (Header)</strong></td><td>Logo de Lavoro, botón de toggle del menú lateral, y menú de usuario con nombre completo del usuario autenticado y opción de cierre de sesión.</td></tr>
+    <tr><td><strong>Menú lateral (Sidebar)</strong></td><td>Navegación principal del sistema con accesos a todos los módulos. Colapsable. El ítem activo se resalta visualmente. Los módulos sin privilegio no se muestran al usuario.</td></tr>
+    <tr><td><strong>Área de contenido principal</strong></td><td>Zona central donde se cargan los formularios, listados y reportes de cada módulo.</td></tr>
+    <tr><td><strong>Sistema de alertas</strong></td><td>Mensajes de éxito (verde), error (rojo) y advertencia (amarillo) que aparecen en la parte superior del contenido y se auto-ocultan.</td></tr>
+  </tbody>
+</table>
+
+<h2>10.2 Mapa de navegación</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+graph TD
+    LOGIN["🔐 Login"] --> HOME["🏠 Inicio / Dashboard"]
+    HOME --> RI["📥 Recepciones Internas"]
+    HOME --> DI["📤 Despachos Internos"]
+    HOME --> RE["🚚 Recepciones Externas"]
+    HOME --> DE["🚛 Despachos Externos"]
+    HOME --> REP["📊 Reportes"]
+    HOME --> AUD["🔍 Auditoría / Bitácora"]
+    HOME --> ADM["⚙️ Administración"]
+    HOME --> MAE["📋 Maestros"]
+
+    RI --> RI1["Nuevo VRI"]
+    RI --> RI2["Listado y búsqueda"]
+    RI --> RI3["Ver / Editar / Anular"]
+    RI --> RI4["Imprimir VRI"]
+
+    DI --> DI1["Nuevo VDI"]
+    DI --> DI2["Listado y búsqueda"]
+    DI --> DI3["Ver / Editar / Anular"]
+    DI --> DI4["Imprimir VDI"]
+
+    RE --> RE1["Nuevo VRE (+guías)"]
+    RE --> RE2["Listado y búsqueda"]
+    RE --> RE3["Ver / Editar"]
+    RE --> RE4["Consulta DNI (API)"]
+
+    DE --> DE1["Nuevo VDE"]
+    DE --> DE2["Listado y búsqueda"]
+    DE --> DE3["Anular / Reactivar"]
+
+    REP --> REP1["Despachos Internos"]
+    REP --> REP2["Recepciones Internas"]
+    REP --> REP3["Recepciones Externas"]
+    REP --> REP4["Despachos Externos"]
+    REP --> REP5["Consolidado / Picking"]
+    REP --> REP6["Exportar Excel"]
+
+    ADM --> ADM1["Usuarios (CRUD)"]
+    ADM --> ADM2["Roles y Privilegios"]
+    ADM --> ADM3["Backup BD"]
+
+    MAE --> MAE1["Productos"]
+    MAE --> MAE2["Áreas / Subáreas"]
+    MAE --> MAE3["Responsables / Recepcionistas"]
+    MAE --> MAE4["Transportistas / Choferes / Placas"]
+    MAE --> MAE5["Origen / Destino / Series / Turnos"]
+  </div>
+  <div class="diagrama-titulo">Figura 8 – Mapa de navegación completo del sistema Lavoro-ERP</div>
+</div>
+
+<h2>10.3 Tecnologías de interfaz utilizadas</h2>
+
+<table class="doc-table">
+  <thead><tr><th>Tecnología</th><th>Versión</th><th>Uso en el sistema</th></tr></thead>
+  <tbody>
+    <tr><td>Bootstrap 5</td><td>5.x</td><td>Framework CSS para diseño responsivo, componentes visuales (botones, modales, tablas, alertas).</td></tr>
+    <tr><td>Bootstrap Icons</td><td>1.11.1</td><td>Iconografía de la interfaz.</td></tr>
+    <tr><td>Bootstrap Select</td><td>1.14.0-beta3</td><td>Componentes de selección avanzados con búsqueda.</td></tr>
+    <tr><td>jQuery</td><td>3.x</td><td>Manipulación del DOM, AJAX, eventos de formulario.</td></tr>
+    <tr><td>JavaScript nativo (ES6+)</td><td>—</td><td>Lógica de formularios, validaciones client-side, llamadas AJAX a APIs internas.</td></tr>
+    <tr><td>CSS personalizado</td><td>—</td><td>Estilos propios del sistema (style.css, autocorrector.css).</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ============================================================
+     PIE DE PÁGINA
+     ============================================================ -->
+<div class="pie-pagina">
+  <p>
+    <strong>Lavoro-ERP</strong> — Diseño del Sistema de Información — Versión 1.0 — Abril 2026<br>
+    Documento confidencial. Uso interno exclusivo de Lavoro.<br>
+    Desarrollado y documentado por <strong>IJE Soluciones Tecnológicas</strong>.
+  </p>
+</div>
+
+</body>
+</html>

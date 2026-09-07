@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/1999/xhtml" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modelo de Software – Lavoro-ERP</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'default', fontSize: 12 });</script>
+
+  <style>
+    @page { size: A4; margin: 2.5cm 2.5cm 2.5cm 3cm; }
+    body {
+      font-family: 'Calibri', 'Arial', sans-serif;
+      font-size: 11pt;
+      color: #1a1a1a;
+      background: #fff;
+      line-height: 1.6;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 20px 40px;
+    }
+    .portada {
+      text-align: center;
+      padding: 80px 20px 60px;
+      border-bottom: 3px solid #1a3a5c;
+      page-break-after: always;
+    }
+    .portada .logo-text { font-size: 36pt; font-weight: 900; color: #1a3a5c; letter-spacing: 2px; }
+    .portada .logo-sub { font-size: 14pt; color: #e67e22; font-weight: bold; margin-bottom: 60px; }
+    .portada .doc-tipo { font-size: 12pt; color: #555; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px; }
+    .portada .doc-titulo { font-size: 26pt; font-weight: 700; color: #1a3a5c; margin-bottom: 10px; }
+    .portada .doc-subtitulo { font-size: 14pt; color: #555; margin-bottom: 50px; }
+    .portada .meta-table { margin: 40px auto; border-collapse: collapse; width: 70%; }
+    .portada .meta-table td { padding: 8px 16px; border: 1px solid #ccc; font-size: 10pt; }
+    .portada .meta-table td:first-child { font-weight: bold; background: #f0f4f8; width: 35%; }
+    .portada .clasificacion { margin-top: 40px; font-size: 9pt; color: #888; }
+    .toc { page-break-after: always; }
+    .toc h2 { color: #1a3a5c; border-bottom: 2px solid #e67e22; padding-bottom: 6px; }
+    .toc ol { list-style: none; padding: 0; }
+    .toc ol li { padding: 4px 0; font-size: 10.5pt; }
+    .toc ol li a { text-decoration: none; color: #1a3a5c; }
+    .toc ol li.nivel2 { padding-left: 20px; font-weight: normal; color: #555; }
+    .toc ol li.nivel3 { padding-left: 40px; color: #777; font-size: 10pt; }
+    h1 { font-size: 18pt; color: #1a3a5c; border-bottom: 3px solid #1a3a5c; padding-bottom: 8px; margin-top: 40px; }
+    h2 { font-size: 14pt; color: #1a3a5c; border-left: 4px solid #e67e22; padding-left: 10px; margin-top: 30px; }
+    h3 { font-size: 12pt; color: #2c5282; margin-top: 20px; }
+    h4 { font-size: 11pt; color: #555; margin-top: 16px; font-style: italic; }
+    table.doc-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 10.5pt; }
+    table.doc-table th { background: #1a3a5c; color: white; padding: 8px 12px; text-align: left; font-weight: bold; }
+    table.doc-table td { padding: 7px 12px; border: 1px solid #ccc; vertical-align: top; }
+    table.doc-table tr:nth-child(even) td { background: #f7f9fc; }
+    .nota { background: #fff8e1; border-left: 4px solid #f39c12; padding: 10px 16px; margin: 16px 0; font-size: 10pt; }
+    .importante { background: #e8f4f8; border-left: 4px solid #2980b9; padding: 10px 16px; margin: 16px 0; font-size: 10pt; }
+    .code-block {
+      background: #1e2533;
+      color: #a8b2c1;
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 9.5pt;
+      margin: 16px 0;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+    .code-block .kw { color: #c792ea; }
+    .code-block .str { color: #c3e88d; }
+    .code-block .cm { color: #546e7a; font-style: italic; }
+    .code-block .cl { color: #82aaff; }
+    .code-block .fn { color: #82aaff; }
+    .diagrama-container {
+      background: #f9fafb;
+      border: 1px solid #dce3ed;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+    .diagrama-titulo { font-size: 9.5pt; color: #666; margin-top: 10px; font-style: italic; }
+    .capa-box {
+      border: 2px solid #1a3a5c;
+      border-radius: 8px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
+    .capa-header { background: #1a3a5c; color: white; padding: 8px 16px; font-weight: bold; font-size: 11pt; }
+    .capa-body { padding: 12px 16px; font-size: 10.5pt; }
+    .endpoint-box { border: 1px solid #c8d6e5; border-radius: 4px; margin: 10px 0; overflow: hidden; }
+    .endpoint-header { background: #27ae60; color: white; padding: 5px 14px; font-size: 10pt; font-weight: bold; font-family: monospace; }
+    .endpoint-header.post { background: #2980b9; }
+    .endpoint-header.get { background: #27ae60; }
+    .endpoint-body { padding: 8px 14px; font-size: 10pt; }
+    .nueva-pagina { page-break-before: always; }
+    .pie-pagina { margin-top: 60px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 9pt; color: #888; text-align: center; }
+    @media print { body { padding: 0; } .portada { page-break-after: always; } }
+  </style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="portada">
+  <div class="logo-text">LAVORO</div>
+  <div class="logo-sub">Sistema Integrado de Gestión Logística</div>
+  <div class="doc-tipo">Documentación del Sistema</div>
+  <div class="doc-titulo">Modelo de Software</div>
+  <div class="doc-subtitulo">Lavoro-ERP — Arquitectura, Diseño Técnico y Modelo de Datos</div>
+  <table class="meta-table">
+    <tr><td>Proyecto</td><td>Lavoro-ERP</td></tr>
+    <tr><td>Versión del documento</td><td>1.0</td></tr>
+    <tr><td>Fecha de elaboración</td><td>Abril 2026</td></tr>
+    <tr><td>Estado</td><td>Final</td></tr>
+    <tr><td>Desarrollado por</td><td><strong>IJE Soluciones Tecnológicas</strong></td></tr>
+    <tr><td>Clasificación</td><td>Confidencial – Uso Interno</td></tr>
+  </table>
+  <div class="clasificacion">
+    Este documento contiene información técnica confidencial de Lavoro.<br>
+    Desarrollado y documentado por <strong>IJE Soluciones Tecnológicas</strong>.<br>
+    Queda prohibida su reproducción o distribución sin autorización expresa.
+  </div>
+</div>
+
+<!-- TABLA DE CONTENIDOS -->
+<div class="toc">
+  <h2>Tabla de Contenidos</h2>
+  <ol>
+    <li><a href="#sec1">1. Introducción</a></li>
+    <li><a href="#sec2">2. Stack Tecnológico</a></li>
+    <li><a href="#sec3">3. Arquitectura del Sistema</a>
+      <ol>
+        <li class="nivel2"><a href="#sec3-1">3.1 Patrón MVC</a></li>
+        <li class="nivel2"><a href="#sec3-2">3.2 Estructura de directorios</a></li>
+        <li class="nivel2"><a href="#sec3-3">3.3 Diagrama de componentes</a></li>
+        <li class="nivel2"><a href="#sec3-4">3.4 Ciclo de vida de una petición</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec4">4. Descripción de Capas</a>
+      <ol>
+        <li class="nivel2"><a href="#sec4-1">4.1 Capa de presentación (Vistas)</a></li>
+        <li class="nivel2"><a href="#sec4-2">4.2 Capa de control (Controladores)</a></li>
+        <li class="nivel2"><a href="#sec4-3">4.3 Capa de datos (Modelos)</a></li>
+        <li class="nivel2"><a href="#sec4-4">4.4 Capa de infraestructura (Core y Config)</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec5">5. Diagrama de Clases</a></li>
+    <li><a href="#sec6">6. Modelo de Base de Datos</a>
+      <ol>
+        <li class="nivel2"><a href="#sec6-1">6.1 Diagrama ER físico</a></li>
+        <li class="nivel2"><a href="#sec6-2">6.2 Descripción de tablas</a></li>
+        <li class="nivel2"><a href="#sec6-3">6.3 Convenciones de la BD</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec7">7. Diagramas de Secuencia</a></li>
+    <li><a href="#sec8">8. API Interna (Endpoints AJAX)</a></li>
+    <li><a href="#sec9">9. Sistema de Seguridad</a></li>
+    <li><a href="#sec10">10. Integraciones Externas</a></li>
+    <li><a href="#sec11">11. Módulo de Auditoría Técnica</a></li>
+    <li><a href="#sec12">12. Módulo de Respaldo</a></li>
+  </ol>
+</div>
+
+
+<!-- SECCIÓN 1 -->
+<h1 id="sec1">1. Introducción</h1>
+<p>
+  El presente documento constituye el <strong>Modelo de Software</strong> de Lavoro-ERP,
+  describiendo en detalle la arquitectura técnica, el diseño de componentes, las clases
+  del sistema, el modelo de base de datos relacional y los flujos de interacción entre
+  los distintos elementos del sistema.
+</p>
+<p>
+  Este documento está orientado al equipo técnico (desarrolladores, arquitectos, DBAs)
+  y es el complemento técnico al <em>Diseño del Sistema de Información</em>. Juntos
+  conforman la documentación técnica completa del sistema entregado.
+</p>
+
+
+<!-- SECCIÓN 2 -->
+<h1 id="sec2" class="nueva-pagina">2. Stack Tecnológico</h1>
+
+<table class="doc-table">
+  <thead>
+    <tr><th>Categoría</th><th>Tecnología</th><th>Versión mínima</th><th>Rol en el sistema</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Backend</strong></td><td>PHP</td><td>7.4+</td>
+      <td>Lenguaje principal del servidor. Implementa el framework MVC custom, controladores, modelos y lógica de negocio.</td>
+    </tr>
+    <tr>
+      <td><strong>Base de Datos</strong></td><td>MySQL</td><td>5.7+</td>
+      <td>Motor relacional. Almacena todos los datos del sistema. Acceso vía PDO con sentencias preparadas.</td>
+    </tr>
+    <tr>
+      <td><strong>Servidor Web</strong></td><td>Apache / Nginx</td><td>2.4+</td>
+      <td>Servidor HTTP. Gestión de URLs mediante mod_rewrite para el router del framework.</td>
+    </tr>
+    <tr>
+      <td><strong>Frontend CSS</strong></td><td>Bootstrap</td><td>5.x</td>
+      <td>Framework CSS responsivo. Componentes visuales, grid system, modales, alertas.</td>
+    </tr>
+    <tr>
+      <td><strong>Frontend JS</strong></td><td>jQuery</td><td>3.x</td>
+      <td>Manipulación del DOM, manejo de eventos AJAX, interacción dinámica de formularios.</td>
+    </tr>
+    <tr>
+      <td><strong>Exportación Excel</strong></td><td>PhpSpreadsheet</td><td>1.30+</td>
+      <td>Generación de archivos .xlsx para exportación de reportes y listados.</td>
+    </tr>
+    <tr>
+      <td><strong>Gestor de dependencias</strong></td><td>Composer</td><td>2.x</td>
+      <td>Manejo de dependencias PHP del proyecto. Autoload de clases.</td>
+    </tr>
+    <tr>
+      <td><strong>Iconos</strong></td><td>Bootstrap Icons</td><td>1.11.1</td>
+      <td>Biblioteca de iconos SVG inline para la interfaz.</td>
+    </tr>
+    <tr>
+      <td><strong>Selectores avanzados</strong></td><td>Bootstrap Select</td><td>1.14.0-beta3</td>
+      <td>Mejora visual de los elementos &lt;select&gt; del sistema con capacidad de búsqueda.</td>
+    </tr>
+    <tr>
+      <td><strong>API externa</strong></td><td>Factiliza API</td><td>—</td>
+      <td>Consulta de datos de personas por DNI y carnet de extranjería. Cache local en disco.</td>
+    </tr>
+    <tr>
+      <td><strong>Zona horaria</strong></td><td>America/Lima</td><td>—</td>
+      <td>Zona horaria configurada en el entry point del sistema (UTC-5).</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- SECCIÓN 3 -->
+<h1 id="sec3" class="nueva-pagina">3. Arquitectura del Sistema</h1>
+
+<h2 id="sec3-1">3.1 Patrón MVC (Modelo–Vista–Controlador)</h2>
+<p>
+  Lavoro-ERP implementa una arquitectura <strong>MVC custom</strong> desarrollada sin framework
+  externo (sin Laravel, Symfony ni CodeIgniter). Esto proporciona control total sobre el
+  ciclo de vida de la aplicación y mínimas dependencias externas.
+</p>
+
+<table class="doc-table">
+  <thead><tr><th>Capa</th><th>Responsabilidad</th><th>Ubicación</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Modelo (Model)</strong></td>
+      <td>Acceso y manipulación de datos. Consultas SQL, transacciones, reglas de negocio a nivel de datos.</td>
+      <td><code>app/models/*.php</code></td>
+    </tr>
+    <tr>
+      <td><strong>Vista (View)</strong></td>
+      <td>Renderizado HTML. Recibe datos del controlador y los presenta al usuario. Sin lógica de negocio.</td>
+      <td><code>app/views/**/*.php</code></td>
+    </tr>
+    <tr>
+      <td><strong>Controlador (Controller)</strong></td>
+      <td>Orquesta la lógica de la petición. Recibe la solicitud, invoca modelos, prepara datos y selecciona la vista.</td>
+      <td><code>app/controllers/*.php</code></td>
+    </tr>
+    <tr>
+      <td><strong>Router (App)</strong></td>
+      <td>Parsea la URL, determina el controlador y método a invocar, y ejecuta el flujo.</td>
+      <td><code>core/App.php</code></td>
+    </tr>
+    <tr>
+      <td><strong>Entry Point</strong></td>
+      <td>Único punto de entrada. Inicia sesión, configura el entorno, carga el Router.</td>
+      <td><code>public/index.php</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="sec3-2">3.2 Estructura de directorios</h2>
+
+<div class="code-block">
+<span class="cm">swlavoro/                   ← Raíz del proyecto</span>
+├── <span class="cl">public/</span>                  <span class="cm">← Document root del servidor web</span>
+│   └── index.php            <span class="cm">← Entry point único de la aplicación</span>
+├── <span class="cl">core/</span>                    <span class="cm">← Framework base MVC</span>
+│   ├── App.php              <span class="cm">← Router: parsea URL y despacha controlador</span>
+│   ├── Controller.php       <span class="cm">← Clase base de controladores</span>
+│   └── Model.php            <span class="cm">← Clase base de modelos (PDO wrapper)</span>
+├── <span class="cl">app/</span>                     <span class="cm">← Código de la aplicación</span>
+│   ├── <span class="cl">controllers/</span>         <span class="cm">← 28 controladores (uno por módulo)</span>
+│   ├── <span class="cl">models/</span>              <span class="cm">← 25 modelos de entidades</span>
+│   ├── <span class="cl">views/</span>               <span class="cm">← Vistas PHP organizadas por módulo</span>
+│   │   └── <span class="cl">layouts/</span>         <span class="cm">← Layout principal (main.php)</span>
+│   ├── <span class="cl">helpers/</span>             <span class="cm">← Funciones auxiliares</span>
+│   └── <span class="cl">api/</span>                 <span class="cm">← Endpoints AJAX directos (DNI, etc.)</span>
+├── <span class="cl">config/</span>                  <span class="cm">← Configuración del sistema</span>
+│   ├── database.php         <span class="cm">← Conexión PDO (Singleton)</span>
+│   └── hosting.php          <span class="cm">← URLs base según entorno</span>
+├── <span class="cl">vendor/</span>                  <span class="cm">← Dependencias Composer (PhpSpreadsheet)</span>
+├── <span class="cl">storage/</span>                 <span class="cm">← Archivos generados (backups, exports)</span>
+├── <span class="cl">logs/</span>                    <span class="cm">← Logs de depuración del sistema</span>
+└── composer.json            <span class="cm">← Definición de dependencias</span>
+</div>
+
+<h2 id="sec3-3">3.3 Diagrama de componentes</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+graph TB
+    subgraph CLIENT["🌐 Cliente (Navegador)"]
+        BR["Bootstrap 5 + jQuery\nCSS / JavaScript"]
+    end
+
+    subgraph SERVER["🖥️ Servidor Web (Apache/Nginx + PHP)"]
+        subgraph PUBLIC["public/"]
+            EP["index.php\n(Entry Point)"]
+        end
+        subgraph CORE["core/"]
+            ROUTER["App.php\n(Router)"]
+            BASE_C["Controller.php\n(Base Controller)"]
+            BASE_M["Model.php\n(Base Model)"]
+        end
+        subgraph APP["app/"]
+            CTRL["Controllers\n(28 clases)"]
+            MDL["Models\n(25 clases)"]
+            VWS["Views\n(PHP Templates)"]
+            HLP["Helpers\n(base_url, redirect, excel_export)"]
+        end
+        subgraph CFG["config/"]
+            DB_CFG["database.php\n(Singleton PDO)"]
+            HOST_CFG["hosting.php"]
+        end
+        subgraph VENDOR["vendor/"]
+            XLSX["PhpSpreadsheet\n(Excel export)"]
+        end
+    end
+
+    subgraph DB["🗄️ Base de Datos MySQL"]
+        TABLES["~20+ tablas relacionales"]
+    end
+
+    subgraph EXT["🌍 APIs Externas"]
+        FACTILIZA["Factiliza API\n(DNI / Brevete)"]
+    end
+
+    BR -->|"HTTP Request"| EP
+    EP --> ROUTER
+    ROUTER --> CTRL
+    CTRL --> BASE_C
+    CTRL --> MDL
+    MDL --> BASE_M
+    BASE_M --> DB_CFG
+    DB_CFG --> TABLES
+    CTRL --> VWS
+    VWS --> BR
+    CTRL --> HLP
+    HLP --> XLSX
+    XLSX -->|"Descarga .xlsx"| BR
+    APP -->|"Cache local"| FACTILIZA
+  </div>
+  <div class="diagrama-titulo">Figura 1 – Diagrama de componentes del sistema Lavoro-ERP</div>
+</div>
+
+<h2 id="sec3-4">3.4 Ciclo de vida de una petición HTTP</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+sequenceDiagram
+    actor U as Navegador / Cliente
+    participant EP as public/index.php
+    participant SESS as Gestión de Sesión
+    participant ROUTER as core/App.php (Router)
+    participant CTRL as Controller
+    participant MODEL as Model
+    participant DB as MySQL
+    participant VIEW as Vista PHP
+
+    U->>EP: GET /despachosinternos/index
+    EP->>SESS: session_start() + verificar inactividad
+    EP->>ROUTER: new App()
+    ROUTER->>ROUTER: parseUrl() → ["despachosinternos", "index"]
+    ROUTER->>ROUTER: Mapeo: "despachosinternos" → DespachosInternosController
+    ROUTER->>CTRL: require + new DespachosInternosController()
+    ROUTER->>CTRL: call_user_func_array([ctrl, "index"], [])
+    CTRL->>MODEL: $this->model('DespachoInterno')
+    CTRL->>MODEL: $this->model('Responsable')
+    MODEL->>DB: SELECT * FROM responsables WHERE ...
+    DB-->>MODEL: Resultados
+    MODEL-->>CTRL: Array de datos
+    CTRL->>VIEW: $this->view('despachosinternos/index', $data)
+    VIEW->>VIEW: require layouts/main.php
+    VIEW-->>U: HTML completo renderizado
+  </div>
+  <div class="diagrama-titulo">Figura 2 – Ciclo de vida de una petición HTTP en Lavoro-ERP</div>
+</div>
+
+
+<!-- SECCIÓN 4 -->
+<h1 id="sec4" class="nueva-pagina">4. Descripción de Capas</h1>
+
+<h2 id="sec4-1">4.1 Capa de Presentación (Vistas)</h2>
+
+<div class="capa-box">
+  <div class="capa-header">VIEW LAYER — app/views/</div>
+  <div class="capa-body">
+    <p>Las vistas son archivos PHP que reciben un array <code>$data</code> del controlador (vía <code>extract($data)</code>) y producen HTML dinámico. Todas las vistas se renderizan dentro del layout principal <code>layouts/main.php</code>.</p>
+    <p><strong>Layout principal</strong> (<code>main.php</code>) incluye:</p>
+    <ul>
+      <li>Declaración DOCTYPE, charset UTF-8, meta tags de no-cache</li>
+      <li>Carga de Bootstrap 5, Bootstrap Icons, Bootstrap Select, CSS personalizado</li>
+      <li>Variable global JavaScript <code>window.BASE_URL</code> y <code>window.APP_URL</code></li>
+      <li>Barra de navegación superior (header) con logo y usuario autenticado</li>
+      <li>Menú lateral (sidebar) con navegación condicional según privilegios</li>
+      <li>Área de contenido principal donde se inyecta la vista específica</li>
+    </ul>
+    <p><strong>Vistas por módulo:</strong></p>
+    <table class="doc-table">
+      <thead><tr><th>Módulo</th><th>Directorio de vistas</th><th>Archivos principales</th></tr></thead>
+      <tbody>
+        <tr><td>Recepciones Internas</td><td>views/recepcionesinternas/</td><td>index.php, imprimir.php</td></tr>
+        <tr><td>Despachos Internos</td><td>views/despachosinternos/</td><td>index.php, edicion.php, imprimir.php</td></tr>
+        <tr><td>Recepciones Externas</td><td>views/recepcionesexternas/</td><td>index.php, imprimir.php</td></tr>
+        <tr><td>Despachos Externos</td><td>views/despachosexternos/</td><td>index.php, imprimir.php</td></tr>
+        <tr><td>Reportes</td><td>views/reportes/</td><td>despachosinternos.php, recepcionesinternas.php, recepcionesexternas.php, consolidado.php, picking.php</td></tr>
+        <tr><td>Usuarios</td><td>views/usuarios/</td><td>index.php, crear.php, editar.php</td></tr>
+        <tr><td>Auditoría</td><td>views/auditoria/</td><td>index.php</td></tr>
+        <tr><td>Login</td><td>views/</td><td>login.php</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2 id="sec4-2">4.2 Capa de Control (Controladores)</h2>
+
+<div class="capa-box">
+  <div class="capa-header">CONTROLLER LAYER — app/controllers/</div>
+  <div class="capa-body">
+    <p>Todos los controladores extienden la clase base <code>Controller</code> (core/Controller.php) que proporciona:</p>
+    <ul>
+      <li><code>model($nombre)</code> — Carga e instancia un modelo por nombre.</li>
+      <li><code>view($ruta, $data)</code> — Renderiza una vista dentro del layout.</li>
+      <li><code>requirePrivilegio($priv)</code> — Verifica que el usuario tenga el privilegio indicado o termina la ejecución.</li>
+    </ul>
+
+    <table class="doc-table">
+      <thead><tr><th>Controlador</th><th>Módulo</th><th>Métodos principales</th></tr></thead>
+      <tbody>
+        <tr><td>LoginController</td><td>Autenticación</td><td>index(), auth(), logout()</td></tr>
+        <tr><td>HomeController</td><td>Inicio</td><td>index()</td></tr>
+        <tr><td>RecepcionesInternasController</td><td>VRI</td><td>index(), guardar(), modificar(), anular(), imprimir(), siguienteVale()</td></tr>
+        <tr><td>DespachosInternosController</td><td>VDI</td><td>index(), edicion(), guardar(), modificar(), anular(), reactivar(), imprimir(), siguienteVale()</td></tr>
+        <tr><td>RecepcionesExternasController</td><td>VRE</td><td>index(), guardar(), modificar(), anular(), imprimir(), siguienteVale(), obtenerTransportistas(), obtenerChoferes()</td></tr>
+        <tr><td>DespachosExternosController</td><td>VDE</td><td>index(), guardar(), modificar(), anular(), reactivar(), imprimir(), siguienteVale()</td></tr>
+        <tr><td>ReportesController</td><td>Reportes</td><td>index(), despachosinternos(), recepcionesinternas(), recepcionesexternas(), consolidado(), picking(), exportarExcel(), actualizarProductoEspecifico()</td></tr>
+        <tr><td>AuditoriaController</td><td>Bitácora</td><td>index(), historial()</td></tr>
+        <tr><td>UsuariosController</td><td>Usuarios</td><td>index(), crear(), guardar(), editar(), actualizar(), exportar()</td></tr>
+        <tr><td>RolesController</td><td>Roles</td><td>index(), crear(), editar(), guardar(), actualizar()</td></tr>
+        <tr><td>PrivilegiosController</td><td>Privilegios</td><td>index(), asignar(), quitar()</td></tr>
+        <tr><td>ProductosController</td><td>Maestros</td><td>index(), guardar(), actualizar(), eliminar()</td></tr>
+        <tr><td>AreasController</td><td>Maestros</td><td>index(), guardar(), actualizar()</td></tr>
+        <tr><td>SubareasController</td><td>Maestros</td><td>index(), guardar(), actualizar()</td></tr>
+        <tr><td>TransportistasController</td><td>Maestros</td><td>index(), guardar(), actualizar()</td></tr>
+        <tr><td>ChoferesController</td><td>Maestros</td><td>index(), guardar(), actualizar()</td></tr>
+        <tr><td>BackupController</td><td>Backup</td><td>index(), generarBackup()</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2 id="sec4-3">4.3 Capa de Datos (Modelos)</h2>
+
+<div class="capa-box">
+  <div class="capa-header">MODEL LAYER — app/models/</div>
+  <div class="capa-body">
+    <p>Todos los modelos extienden <code>Model</code> (core/Model.php). La clase base inyecta automáticamente la conexión PDO mediante el patrón Singleton de <code>Database</code>.</p>
+    <p>La clase base proporciona:</p>
+    <ul>
+      <li><code>query($sql, $params)</code> — Ejecuta sentencia preparada. Retorna array para SELECT, PDOStatement para INSERT/UPDATE.</li>
+      <li><code>lastInsertId()</code> — Retorna el último ID auto-insertado.</li>
+      <li><code>$this->db</code> — Conexión PDO disponible en todos los modelos hijo.</li>
+    </ul>
+
+    <table class="doc-table">
+      <thead><tr><th>Modelo</th><th>Tabla principal</th><th>Métodos clave</th></tr></thead>
+      <tbody>
+        <tr><td>RecepcionInterna</td><td>recepciones_internas</td><td>getById(), registrarRecepcion(), modificar(), anular(), obtenerSiguienteVale(), actualizarProductoEspecifico()</td></tr>
+        <tr><td>RecepcionInternaProducto</td><td>recepciones_internas_productos</td><td>registrar(), eliminarPorDespacho()</td></tr>
+        <tr><td>DespachoInterno</td><td>despachos_internos</td><td>getById(), registrar(), modificar(), anular(), reactivar(), puedeModificar(), obtenerSiguienteVale(), actualizarProductoEspecifico()</td></tr>
+        <tr><td>DespachoInternoProducto</td><td>despachos_internos_productos</td><td>registrar(), eliminarPorDespacho()</td></tr>
+        <tr><td>RecepcionExterna</td><td>recepciones_externas</td><td>registrarRecepcion(), modificar(), anular(), obtenerSiguienteVale(), getById()</td></tr>
+        <tr><td>RecepcionExternaGuia</td><td>recepciones_externas_guias</td><td>registrar(), getByRecepcion()</td></tr>
+        <tr><td>RecepcionExternaProducto</td><td>recepciones_externas_productos</td><td>registrar(), getByGuia()</td></tr>
+        <tr><td>DespachoExterno</td><td>despachos_externos</td><td>registrar(), modificar(), anular(), reactivar(), puedeModificar(), obtenerSiguienteVale()</td></tr>
+        <tr><td>User</td><td>usuarios</td><td>findByUsername(), getById(), getPaginatedFiltered(), countFiltered(), crear(), actualizar()</td></tr>
+        <tr><td>Role</td><td>roles</td><td>getAll(), getById(), getByName(), crear(), actualizar()</td></tr>
+        <tr><td>Privilegio</td><td>privilegios</td><td>getAll(), getByRoleId(), asignar(), quitar()</td></tr>
+        <tr><td>Auditoria</td><td>(múltiples tablas)</td><td>getLog(), countLog(), buildHaving(), historial()</td></tr>
+        <tr><td>Producto</td><td>productos</td><td>getAll(), getById(), crear(), actualizar(), buscar()</td></tr>
+        <tr><td>Area</td><td>areas</td><td>getAll(), getById(), crear(), actualizar()</td></tr>
+        <tr><td>Subarea</td><td>subareas</td><td>getAll(), getById(), getByArea(), crear(), actualizar()</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2 id="sec4-4">4.4 Capa de Infraestructura (Core y Config)</h2>
+
+<div class="capa-box">
+  <div class="capa-header">INFRASTRUCTURE LAYER — core/ + config/</div>
+  <div class="capa-body">
+    <h4>Database.php — Patrón Singleton para conexión PDO</h4>
+    <div class="code-block">
+<span class="kw">class</span> <span class="cl">Database</span> {
+    <span class="kw">private static</span> $instance = <span class="kw">null</span>;
+    <span class="kw">private</span> $connection;
+
+    <span class="kw">public static function</span> <span class="fn">getInstance</span>() {
+        <span class="kw">if</span> (<span class="kw">self</span>::$instance === <span class="kw">null</span>) {
+            <span class="kw">self</span>::$instance = <span class="kw">new</span> <span class="cl">Database</span>();
+        }
+        <span class="kw">return</span> <span class="kw">self</span>::$instance;
+    }
+
+    <span class="kw">public function</span> <span class="fn">getConnection</span>() {
+        <span class="kw">return</span> $this->connection; <span class="cm">// PDO connection</span>
+    }
+}
+    </div>
+    <p>La conexión PDO utiliza:</p>
+    <ul>
+      <li><code>PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION</code> — Errores como excepciones PHP.</li>
+      <li><code>PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC</code> — Resultados como arrays asociativos.</li>
+      <li><code>charset=utf8mb4</code> — Soporte completo de Unicode incluyendo emojis.</li>
+    </ul>
+    <p>El Singleton garantiza que solo exista <strong>una conexión a la BD</strong> durante todo el ciclo de vida de cada petición, evitando conexiones múltiples innecesarias.</p>
+
+    <h4>Helpers disponibles</h4>
+    <table class="doc-table">
+      <thead><tr><th>Helper</th><th>Archivo</th><th>Función principal</th></tr></thead>
+      <tbody>
+        <tr><td>URL base</td><td>helpers/base_url.php</td><td>Define las constantes <code>BASE_URL</code> y <code>APP_URL</code> según el entorno (local/hosting).</td></tr>
+        <tr><td>URL helper</td><td>helpers/url_helper.php</td><td>Funciones <code>app_url($path)</code> y <code>asset_url($path)</code> para generar URLs absolutas.</td></tr>
+        <tr><td>Redirect</td><td>helpers/redirect.php</td><td>Función <code>redirect($path)</code> para redirecciones HTTP seguras.</td></tr>
+        <tr><td>Excel Export</td><td>helpers/excel_export.php</td><td>Funciones de utilidad para formatear y descargar archivos Excel con PhpSpreadsheet.</td></tr>
+        <tr><td>Backup</td><td>helpers/BackupService.php</td><td>Servicio de generación de respaldo SQL de la base de datos.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- SECCIÓN 5 — DIAGRAMA DE CLASES -->
+<h1 id="sec5" class="nueva-pagina">5. Diagrama de Clases</h1>
+
+<p>El siguiente diagrama muestra las clases principales del sistema y sus relaciones de herencia y uso.</p>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+classDiagram
+    class Controller {
+        +model(nombre) object
+        +view(ruta, data) void
+        +requirePrivilegio(priv) void
+    }
+    class Model {
+        #db PDO
+        +__construct()
+        +query(sql, params) mixed
+        +lastInsertId() int
+    }
+    class Database {
+        -instance Database
+        -connection PDO
+        +getInstance() Database
+        +getConnection() PDO
+    }
+    class App {
+        -controller string
+        -method string
+        -params array
+        +__construct()
+        -parseUrl() array
+    }
+    class LoginController {
+        +index() void
+        +auth() void
+        +logout() void
+    }
+    class RecepcionesInternasController {
+        +index() void
+        +guardar() void
+        +modificar() void
+        +anular() void
+        +siguienteVale() void
+        +imprimir(id) void
+    }
+    class DespachosInternosController {
+        +index() void
+        +edicion() void
+        +guardar() void
+        +anular() void
+        +reactivar() void
+        +siguienteVale() void
+    }
+    class RecepcionesExternasController {
+        +index() void
+        +guardar() void
+        +siguienteVale() void
+        +obtenerChoferes() array
+        +obtenerTransportistas() array
+    }
+    class DespachosExternosController {
+        +index() void
+        +guardar() void
+        +anular() void
+        +reactivar() void
+        +siguienteVale() void
+    }
+    class RecepcionInterna {
+        +getById(id) array
+        +registrarRecepcion(data) int
+        +modificar(data) bool
+        +anular(id, motivo) bool
+        +obtenerSiguienteVale() int
+        +actualizarProductoEspecifico(...) bool
+    }
+    class DespachoInterno {
+        +getById(id) array
+        +registrar(data) int
+        +modificar(data) bool
+        +anular(id, motivo) bool
+        +reactivar(id) bool
+        +puedeModificar(id) array
+        +obtenerSiguienteVale() int
+    }
+    class RecepcionExterna {
+        +registrarRecepcion(data) int
+        +getById(id) array
+        +obtenerSiguienteVale() int
+    }
+    class DespachoExterno {
+        +registrar(data) int
+        +modificar(data) bool
+        +anular(id, motivo) bool
+        +reactivar(id) bool
+        +puedeModificar(id) array
+        +obtenerSiguienteVale() int
+    }
+    class User {
+        +findByUsername(username) array
+        +getById(id) array
+        +getPaginatedFiltered(limit, offset, busq) array
+        +countFiltered(busq) int
+    }
+    class Auditoria {
+        +getLog(filtros, limit, offset) array
+        +countLog(filtros) int
+        +historial(modulo, id) array
+    }
+
+    Controller <|-- LoginController
+    Controller <|-- RecepcionesInternasController
+    Controller <|-- DespachosInternosController
+    Controller <|-- RecepcionesExternasController
+    Controller <|-- DespachosExternosController
+    Model <|-- RecepcionInterna
+    Model <|-- DespachoInterno
+    Model <|-- RecepcionExterna
+    Model <|-- DespachoExterno
+    Model <|-- User
+    Model <|-- Auditoria
+    Model --> Database : usa
+    Controller --> Model : instancia
+    App --> Controller : despacha
+  </div>
+  <div class="diagrama-titulo">Figura 3 – Diagrama de clases principal de Lavoro-ERP</div>
+</div>
+
+
+<!-- SECCIÓN 6 — MODELO DE BD -->
+<h1 id="sec6" class="nueva-pagina">6. Modelo de Base de Datos</h1>
+
+<h2 id="sec6-1">6.1 Diagrama ER físico</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+erDiagram
+    usuarios {
+        int Id PK
+        varchar username
+        varchar password
+        varchar DocIdentidad
+        varchar NombresApellidos
+        int RoleId FK
+        datetime creado_en
+        tinyint activo
+    }
+    roles {
+        int Id PK
+        varchar Nombre
+        text Descripcion
+    }
+    privilegios {
+        int Id PK
+        varchar Nombre
+        text Descripcion
+    }
+    roles_privilegios {
+        int RoleId FK
+        int PrivilegioId FK
+    }
+    recepciones_internas {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Area FK
+        int Subarea FK
+        int Despachador FK
+        int Verificador FK
+        int MedioTransporte FK
+        varchar NLiquidacion
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    recepciones_internas_productos {
+        int Id PK
+        int DespachoId FK
+        varchar CodigoProducto
+        varchar DescripcionProducto
+        varchar UnidadMedida
+        decimal Cantidad
+        text Comentarios
+    }
+    despachos_internos {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Area FK
+        int Subarea FK
+        int Despachador FK
+        int Recepcionista FK
+        int Verificador FK
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    despachos_internos_productos {
+        int Id PK
+        int DespachoId FK
+        varchar CodigoProducto
+        varchar DescripcionProducto
+        varchar UnidadMedida
+        decimal Cantidad
+        text Comentarios
+    }
+    recepciones_externas {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Origen FK
+        int Recepcionista FK
+        varchar Empresa
+        varchar RUC
+        int Chofer FK
+        varchar Brevete
+        text Comentarios
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    recepciones_externas_guias {
+        int Id PK
+        int RecepcionId FK
+        int SerieId FK
+        varchar NumeroGuia
+    }
+    recepciones_externas_productos {
+        int Id PK
+        int GuiaId FK
+        varchar CodigoProducto
+        varchar DescripcionProducto
+        varchar UnidadMedida
+        decimal Cantidad
+        text Comentarios
+    }
+    despachos_externos {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Destino FK
+        int ClienteExterno FK
+        int Transportista FK
+        int Chofer FK
+        int Placa FK
+        time HoraSalida
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    areas {
+        int Id PK
+        varchar Area
+    }
+    subareas {
+        int Id PK
+        varchar Subarea
+        int AreaId FK
+    }
+    responsables {
+        int Id PK
+        varchar NombresApellidos
+        varchar Cargo
+        tinyint estado
+    }
+    recepcionistas {
+        int Id PK
+        varchar NombresApellidos
+        tinyint estado
+    }
+    transportistas {
+        int Id PK
+        varchar RUC
+        varchar Empresa
+        tinyint estado
+    }
+    choferes {
+        int Id PK
+        varchar ApellidosNombres
+        varchar DNI
+        varchar Brevete
+        tinyint estado
+    }
+    placas {
+        int Id PK
+        varchar Placa
+        tinyint estado
+    }
+    productos {
+        int Id PK
+        varchar Codigo
+        varchar Descripcion
+        varchar UnidadMedida
+        tinyint estado
+    }
+    turnos {
+        int Id PK
+        varchar Turno
+    }
+    medio_transporte {
+        int Id PK
+        varchar MedioTransporte
+    }
+    origen {
+        int Id PK
+        varchar Origen
+    }
+    destino {
+        int Id PK
+        varchar Destino
+    }
+    clientes_externos {
+        int Id PK
+        varchar RazonSocial
+        varchar RUC
+    }
+    series {
+        int Id PK
+        varchar Serie
+    }
+
+    usuarios }o--|| roles : "RoleId"
+    roles ||--|{ roles_privilegios : ""
+    privilegios ||--|{ roles_privilegios : ""
+    recepciones_internas ||--|{ recepciones_internas_productos : "DespachoId"
+    despachos_internos ||--|{ despachos_internos_productos : "DespachoId"
+    recepciones_externas ||--|{ recepciones_externas_guias : "RecepcionId"
+    recepciones_externas_guias ||--|{ recepciones_externas_productos : "GuiaId"
+    areas ||--|{ subareas : "AreaId"
+    recepciones_externas_guias }o--|| series : "SerieId"
+  </div>
+  <div class="diagrama-titulo">Figura 4 – Diagrama Entidad–Relación físico de la base de datos lavorope_dblavoro</div>
+</div>
+
+<h2 id="sec6-2">6.2 Descripción de tablas</h2>
+
+<table class="doc-table">
+  <thead>
+    <tr><th>Tabla</th><th>Registros aprox.</th><th>Descripción</th><th>Relaciones</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>usuarios</strong></td><td>Bajo (10-100)</td><td>Cuentas de acceso al sistema con credenciales y rol asignado.</td><td>→ roles</td></tr>
+    <tr><td><strong>roles</strong></td><td>Muy bajo (2-10)</td><td>Grupos de permisos del sistema.</td><td>↔ privilegios</td></tr>
+    <tr><td><strong>privilegios</strong></td><td>Bajo (20-50)</td><td>Acciones individuales que pueden asignarse a roles.</td><td>↔ roles</td></tr>
+    <tr><td><strong>roles_privilegios</strong></td><td>Bajo</td><td>Tabla pivote N:N entre roles y privilegios.</td><td>→ roles, → privilegios</td></tr>
+    <tr><td><strong>recepciones_internas</strong></td><td>Alto (creciente)</td><td>Cabecera de cada Vale de Recepción Interna (VRI).</td><td>→ turnos, areas, subareas, responsables, medio_transporte, usuarios</td></tr>
+    <tr><td><strong>recepciones_internas_productos</strong></td><td>Muy alto</td><td>Líneas de productos de cada VRI.</td><td>→ recepciones_internas</td></tr>
+    <tr><td><strong>despachos_internos</strong></td><td>Alto (creciente)</td><td>Cabecera de cada Vale de Despacho Interno (VDI).</td><td>→ turnos, areas, subareas, responsables, recepcionistas, usuarios</td></tr>
+    <tr><td><strong>despachos_internos_productos</strong></td><td>Muy alto</td><td>Líneas de productos de cada VDI.</td><td>→ despachos_internos</td></tr>
+    <tr><td><strong>recepciones_externas</strong></td><td>Alto (creciente)</td><td>Cabecera de cada Vale de Recepción Externa (VRE).</td><td>→ turnos, origen, recepcionistas, choferes, usuarios</td></tr>
+    <tr><td><strong>recepciones_externas_guias</strong></td><td>Alto</td><td>Guías de remisión asociadas a cada VRE.</td><td>→ recepciones_externas, series</td></tr>
+    <tr><td><strong>recepciones_externas_productos</strong></td><td>Muy alto</td><td>Productos de cada guía de remisión.</td><td>→ recepciones_externas_guias</td></tr>
+    <tr><td><strong>despachos_externos</strong></td><td>Alto (creciente)</td><td>Cabecera de cada Vale de Despacho Externo (VDE).</td><td>→ turnos, destino, clientes_externos, transportistas, choferes, placas, usuarios</td></tr>
+    <tr><td><strong>areas</strong></td><td>Bajo (maestro)</td><td>Áreas organizacionales de la empresa.</td><td>→ subareas</td></tr>
+    <tr><td><strong>subareas</strong></td><td>Bajo (maestro)</td><td>Subdivisiones de cada área.</td><td>→ areas</td></tr>
+    <tr><td><strong>responsables</strong></td><td>Bajo (maestro)</td><td>Personal despachador/verificador en operaciones internas.</td><td>—</td></tr>
+    <tr><td><strong>recepcionistas</strong></td><td>Bajo (maestro)</td><td>Personal recepcionista de operaciones internas y externas.</td><td>—</td></tr>
+    <tr><td><strong>transportistas</strong></td><td>Medio (maestro)</td><td>Empresas de transporte externas con RUC.</td><td>→ choferes</td></tr>
+    <tr><td><strong>choferes</strong></td><td>Medio (maestro)</td><td>Conductores con DNI y brevete.</td><td>—</td></tr>
+    <tr><td><strong>placas</strong></td><td>Medio (maestro)</td><td>Vehículos de transporte.</td><td>—</td></tr>
+    <tr><td><strong>productos</strong></td><td>Medio-alto (maestro)</td><td>Catálogo de productos con código y unidad de medida.</td><td>—</td></tr>
+    <tr><td><strong>turnos</strong></td><td>Muy bajo (3)</td><td>Turnos de trabajo: Mañana, Tarde, Noche.</td><td>—</td></tr>
+    <tr><td><strong>medio_transporte</strong></td><td>Bajo (maestro)</td><td>Tipos de transporte para recepciones internas.</td><td>—</td></tr>
+    <tr><td><strong>origen</strong></td><td>Bajo (maestro)</td><td>Orígenes para recepciones externas.</td><td>—</td></tr>
+    <tr><td><strong>destino</strong></td><td>Bajo (maestro)</td><td>Destinos para despachos externos.</td><td>—</td></tr>
+    <tr><td><strong>clientes_externos</strong></td><td>Medio (maestro)</td><td>Clientes receptores de despachos externos.</td><td>—</td></tr>
+    <tr><td><strong>series</strong></td><td>Bajo (maestro)</td><td>Series documentales para guías de remisión.</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec6-3">6.3 Convenciones de la base de datos</h2>
+
+<table class="doc-table">
+  <thead><tr><th>Convención</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Eliminación lógica</strong></td><td>Los registros <em>no se eliminan físicamente</em>. Se usa el campo <code>estado</code> con valores <code>'activo'</code>, <code>'anulado'</code> o campo <code>activo</code> tinyint(1).</td></tr>
+    <tr><td><strong>Trazabilidad</strong></td><td>Todos los registros operativos tienen <code>creado_por</code> (FK a usuarios), <code>creado_en</code> (DATETIME) e <code>ip_creacion</code>.</td></tr>
+    <tr><td><strong>Correlativo de vales</strong></td><td>Calculado mediante <code>MAX(NVale)+1</code> en cada módulo. Formato: prefijo + 6 dígitos con padding de ceros (ej: VDI-000042).</td></tr>
+    <tr><td><strong>Charset</strong></td><td><code>utf8mb4</code> con collation <code>utf8mb4_general_ci</code> para soporte completo de caracteres internacionales.</td></tr>
+    <tr><td><strong>Zona horaria</strong></td><td>Todas las fechas se insertan en UTC-5 (America/Lima). El servidor PHP define la zona horaria antes de cualquier operación.</td></tr>
+    <tr><td><strong>Claves primarias</strong></td><td>Siempre <code>Id INT AUTO_INCREMENT PRIMARY KEY</code>.</td></tr>
+    <tr><td><strong>Sentencias preparadas</strong></td><td>Toda interacción con la BD usa PDO prepared statements para prevenir SQL Injection (OWASP A03).</td></tr>
+  </tbody>
+</table>
+
+
+<!-- SECCIÓN 7 — DIAGRAMAS DE SECUENCIA -->
+<h1 id="sec7" class="nueva-pagina">7. Diagramas de Secuencia</h1>
+
+<h2>7.1 Secuencia: Crear Despacho Interno (VDI)</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+sequenceDiagram
+    actor U as Operador
+    participant JS as JavaScript (Browser)
+    participant C as DespachosInternosController
+    participant MD as Model: DespachoInterno
+    participant MP as Model: DespachoInternoProducto
+    participant MA as Model: Auditoria
+    participant DB as MySQL
+
+    U->>JS: Completa formulario y hace clic "Guardar"
+    JS->>JS: Valida campos obligatorios (client-side)
+    JS->>C: POST /despachosinternos/guardar (JSON)
+    C->>C: Verifica sesión $_SESSION['user']
+    C->>C: Extrae datos del JSON (php://input)
+    C->>MD: obtenerSiguienteVale()
+    MD->>DB: SELECT MAX(NVale)+1 FROM despachos_internos
+    DB-->>MD: n+1
+    MD-->>C: Siguiente número
+    C->>MD: registrar($despachoData)
+    MD->>DB: BEGIN TRANSACTION
+    MD->>DB: INSERT INTO despachos_internos (...)
+    DB-->>MD: lastInsertId = 42
+    loop Por cada producto
+        C->>MP: registrar($productoData)
+        MP->>DB: INSERT INTO despachos_internos_productos (...)
+    end
+    DB-->>MD: COMMIT
+    MD->>MA: registrarCreacion('DespachoInterno', 42, userId, ip)
+    MA->>DB: INSERT INTO auditoria_log (...)
+    C-->>JS: JSON { success: true, id: 42, nvale: 'VDI-000042' }
+    JS-->>U: Mensaje de éxito + correlativo generado
+  </div>
+  <div class="diagrama-titulo">Figura 5 – Secuencia de creación de un Vale de Despacho Interno</div>
+</div>
+
+<h2>7.2 Secuencia: Exportar reporte a Excel</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+sequenceDiagram
+    actor U as Usuario
+    participant C as ReportesController
+    participant M as Model (consulta)
+    participant DB as MySQL
+    participant XLSX as PhpSpreadsheet
+
+    U->>C: GET /reportes/exportarExcel?modulo=despachos&desde=2026-01-01&hasta=2026-04-30
+    C->>C: requirePrivilegio('exportar_excel')
+    C->>M: getFiltered($filtros, 99999, 0)
+    M->>DB: SELECT di.*, ... WHERE fecha BETWEEN ? AND ?
+    DB-->>M: Array de N registros
+    M-->>C: $datos[]
+    C->>XLSX: new Spreadsheet()
+    C->>XLSX: setCell() para encabezados con estilos
+    loop Por cada registro
+        C->>XLSX: setCell() para cada fila
+    end
+    C->>XLSX: new Xlsx($spreadsheet)
+    C->>XLSX: save('php://output')
+    XLSX-->>U: Descarga archivo .xlsx
+  </div>
+  <div class="diagrama-titulo">Figura 6 – Secuencia de exportación de reporte a Excel</div>
+</div>
+
+
+<!-- SECCIÓN 8 — API INTERNA -->
+<h1 id="sec8" class="nueva-pagina">8. API Interna (Endpoints AJAX)</h1>
+
+<p>
+  El sistema expone endpoints internos accedidos vía AJAX desde el frontend. Todos retornan
+  JSON con estructura estándar: <code>{"success": bool, "message": "...", ...datos}</code>
+</p>
+
+<h3>Endpoints por módulo</h3>
+
+<div class="endpoint-box">
+  <div class="endpoint-header get">GET /despachosinternos/siguienteVale</div>
+  <div class="endpoint-body"><strong>Retorna:</strong> <code>{"success":true, "correlativo":"000043"}</code><br>Obtiene el siguiente número correlativo disponible para VDI.</div>
+</div>
+<div class="endpoint-box">
+  <div class="endpoint-header post">POST /despachosinternos/guardar</div>
+  <div class="endpoint-body"><strong>Body:</strong> JSON con datos del VDI y array de productos.<br><strong>Retorna:</strong> <code>{"success":true, "id":42, "nvale":"VDI-000042"}</code></div>
+</div>
+<div class="endpoint-box">
+  <div class="endpoint-header post">POST /despachosinternos/anular</div>
+  <div class="endpoint-body"><strong>Body:</strong> <code>{"id":42, "motivo":"..."}</code><br><strong>Retorna:</strong> <code>{"success":true, "message":"Despacho anulado correctamente."}</code></div>
+</div>
+<div class="endpoint-box">
+  <div class="endpoint-header post">POST /despachosinternos/reactivar</div>
+  <div class="endpoint-body"><strong>Body:</strong> <code>{"id":42}</code><br><strong>Retorna:</strong> <code>{"success":true}</code></div>
+</div>
+
+<br>
+
+<div class="endpoint-box">
+  <div class="endpoint-header get">GET /recepcionesexternas/siguienteVale</div>
+  <div class="endpoint-body"><strong>Retorna:</strong> <code>{"success":true, "correlativo":"VRE-000015"}</code></div>
+</div>
+<div class="endpoint-box">
+  <div class="endpoint-header post">POST /recepcionesexternas/guardar</div>
+  <div class="endpoint-body"><strong>Body:</strong> JSON con datos VRE, array de guías y productos anidados.<br><strong>Retorna:</strong> <code>{"success":true, "id":15}</code></div>
+</div>
+
+<br>
+
+<div class="endpoint-box">
+  <div class="endpoint-header get">GET /reportes/getData (y variantes por módulo)</div>
+  <div class="endpoint-body">Retorna los datos filtrados para poblar la tabla de reportes en pantalla. Acepta parámetros de filtro vía query string.</div>
+</div>
+<div class="endpoint-box">
+  <div class="endpoint-header post">POST /reportes/actualizarProductoEspecifico</div>
+  <div class="endpoint-body"><strong>Body:</strong> <code>{"despachoId":42, "producto":{...}}</code><br>Actualiza un producto específico de un vale desde la vista de reportes.</div>
+</div>
+
+<br>
+
+<div class="endpoint-box">
+  <div class="endpoint-header get">GET /app/api/factiliza_dni.php?dni=12345678</div>
+  <div class="endpoint-body">Consulta la API externa Factiliza para obtener datos de la persona por DNI. Cachea resultado localmente en <code>app/cache/factiliza_dni/</code>.</div>
+</div>
+<div class="endpoint-box">
+  <div class="endpoint-header get">GET /app/api/consultarCarnet.php?carnet=...</div>
+  <div class="endpoint-body">Consulta datos por carnet de extranjería. Cache en <code>app/cache/factiliza_brevete/</code>.</div>
+</div>
+
+<div class="endpoint-box">
+  <div class="endpoint-header get">GET /auditoria/historial?modulo=despacho_interno&amp;id=42</div>
+  <div class="endpoint-body">Retorna el historial completo de modificaciones de un registro específico para visualización en la bitácora.</div>
+</div>
+
+
+<!-- SECCIÓN 9 — SEGURIDAD -->
+<h1 id="sec9" class="nueva-pagina">9. Sistema de Seguridad</h1>
+
+<h2>9.1 Autenticación</h2>
+<table class="doc-table">
+  <thead><tr><th>Mecanismo</th><th>Implementación</th></tr></thead>
+  <tbody>
+    <tr><td>Hash de contraseñas</td><td><code>password_hash($pass, PASSWORD_DEFAULT)</code> — bcrypt con salt automático. Verificación con <code>password_verify()</code>.</td></tr>
+    <tr><td>Sesión segura</td><td>Sesión PHP con nombre personalizado <code>SWLAVORO</code>. Cookie path global <code>/</code>.</td></tr>
+    <tr><td>Timeout por inactividad</td><td>1200 segundos (20 minutos). Verificado en cada petición en <code>public/index.php</code>.</td></tr>
+    <tr><td>Cierre de sesión</td><td><code>session_unset() + session_destroy()</code>. Redirige a login.</td></tr>
+  </tbody>
+</table>
+
+<h2>9.2 Autorización (RBAC)</h2>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+flowchart LR
+    USR["Usuario\nAutenticado"] --> SESS["$_SESSION\n[privilegios]"]
+    SESS --> CHK{"requirePrivilegio\n(priv)"}
+    CHK -->|"in_array(priv, privilegios)"| OK["✅ Acceso permitido\nEjecuta acción"]
+    CHK -->|"No tiene privilegio"| DENY["❌ Acceso denegado\nMensaje de error"]
+    BD[("BD: roles_privilegios")] -->|"Al hacer login"| SESS
+  </div>
+  <div class="diagrama-titulo">Figura 7 – Flujo del sistema de autorización RBAC</div>
+</div>
+
+<p>Al hacer login, el sistema carga todos los privilegios del rol del usuario en la sesión como un array plano (<code>$_SESSION['privilegios']</code>). Cada acción del sistema llama a <code>requirePrivilegio('nombre_privilegio')</code> que hace <code>in_array()</code> sobre ese array, garantizando verificación en O(n) sin consultas adicionales a BD.</p>
+
+<h2>9.3 Prevención de vulnerabilidades OWASP</h2>
+<table class="doc-table">
+  <thead><tr><th>Vulnerabilidad OWASP</th><th>Medida implementada</th></tr></thead>
+  <tbody>
+    <tr><td>A01 – Broken Access Control</td><td>Verificación de privilegios en cada acción del controlador. Redirección a login si la sesión no está activa.</td></tr>
+    <tr><td>A02 – Cryptographic Failures</td><td>Contraseñas con bcrypt. Sin datos sensibles en texto plano en BD.</td></tr>
+    <tr><td>A03 – SQL Injection</td><td>100% de consultas a BD mediante PDO prepared statements con parámetros ligados.</td></tr>
+    <tr><td>A07 – Auth Failures</td><td>Timeout de sesión por inactividad. Cierre explícito con destrucción total de sesión.</td></tr>
+    <tr><td>XSS (Cross-Site Scripting)</td><td>Salidas a HTML usando <code>htmlspecialchars()</code> en todas las vistas.</td></tr>
+    <tr><td>CSRF</td><td>Las acciones de modificación son POST-only. Las operaciones críticas requieren sesión activa.</td></tr>
+  </tbody>
+</table>
+
+
+<!-- SECCIÓN 10 — INTEGRACIONES EXTERNAS -->
+<h1 id="sec10" class="nueva-pagina">10. Integraciones Externas</h1>
+
+<h2>10.1 API Factiliza — Consulta de identidad</h2>
+<p>
+  El sistema integra la API de <strong>Factiliza</strong> para la validación y autocompletado de
+  datos personales del chofer al registrar recepciones y despachos externos.
+</p>
+
+<table class="doc-table">
+  <thead><tr><th>Parámetro</th><th>Detalle</th></tr></thead>
+  <tbody>
+    <tr><td>Tipo de API</td><td>REST / HTTP GET con respuesta JSON</td></tr>
+    <tr><td>Archivos de integración</td><td><code>app/api/factiliza_dni.php</code>, <code>app/api/factiliza_public.php</code>, <code>app/api/consultarCarnet.php</code></td></tr>
+    <tr><td>Cache</td><td>Resultados cacheados en disco (<code>app/cache/factiliza_dni/</code>) para evitar llamadas repetidas al mismo DNI.</td></tr>
+    <tr><td>Fallback</td><td>Si la API no responde o retorna error, el formulario permite ingreso manual de los datos.</td></tr>
+    <tr><td>Datos obtenidos</td><td>Nombres y apellidos completos, número de brevete (licencia de conducir).</td></tr>
+  </tbody>
+</table>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+sequenceDiagram
+    actor U as Usuario
+    participant JS as Browser JS
+    participant API as app/api/factiliza_dni.php
+    participant CACHE as Cache local (disco)
+    participant FACT as Factiliza API (externa)
+
+    U->>JS: Ingresa DNI del chofer
+    JS->>API: GET /app/api/factiliza_dni.php?dni=12345678
+    API->>CACHE: ¿Existe cache para este DNI?
+    alt Cache hit
+        CACHE-->>API: Datos cacheados
+        API-->>JS: JSON con nombre y brevete
+    else Cache miss
+        API->>FACT: GET https://api.factiliza.com/...&dni=12345678
+        FACT-->>API: JSON con datos de la persona
+        API->>CACHE: Guardar resultado en disco
+        API-->>JS: JSON con nombre y brevete
+    end
+    JS-->>U: Autocompleta campos Nombre y Brevete
+  </div>
+  <div class="diagrama-titulo">Figura 8 – Flujo de integración con API Factiliza</div>
+</div>
+
+
+<!-- SECCIÓN 11 — AUDITORÍA TÉCNICA -->
+<h1 id="sec11" class="nueva-pagina">11. Módulo de Auditoría Técnica</h1>
+
+<p>
+  El módulo de auditoría proporciona trazabilidad completa de todas las operaciones realizadas
+  en los 4 módulos principales del sistema.
+</p>
+
+<h2>11.1 Cobertura de la bitácora</h2>
+<table class="doc-table">
+  <thead><tr><th>Módulo</th><th>Eventos registrados</th></tr></thead>
+  <tbody>
+    <tr><td>Recepciones Internas</td><td>CREACIÓN, MODIFICACIÓN, ANULACIÓN</td></tr>
+    <tr><td>Despachos Internos</td><td>CREACIÓN, MODIFICACIÓN, ANULACIÓN, REACTIVACIÓN</td></tr>
+    <tr><td>Recepciones Externas</td><td>CREACIÓN, MODIFICACIÓN, ANULACIÓN</td></tr>
+    <tr><td>Despachos Externos</td><td>CREACIÓN, MODIFICACIÓN, ANULACIÓN, REACTIVACIÓN</td></tr>
+  </tbody>
+</table>
+
+<h2>11.2 Datos registrados por evento</h2>
+<table class="doc-table">
+  <thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
+  <tbody>
+    <tr><td>modulo</td><td>Identificador del módulo (ej: "Despacho Interno")</td></tr>
+    <tr><td>registro_id</td><td>ID del registro afectado en la BD</td></tr>
+    <tr><td>nvale</td><td>Correlativo del vale (ej: "VDI-000042")</td></tr>
+    <tr><td>accion</td><td>CREACIÓN / MODIFICACIÓN / ANULACIÓN / REACTIVACIÓN</td></tr>
+    <tr><td>usuario_id</td><td>ID del usuario que realizó la acción</td></tr>
+    <tr><td>username</td><td>Nombre de usuario</td></tr>
+    <tr><td>nombres</td><td>Nombre completo del usuario</td></tr>
+    <tr><td>fecha_hora</td><td>Timestamp exacto de la acción</td></tr>
+    <tr><td>ip</td><td>Dirección IP desde la que se realizó la acción</td></tr>
+    <tr><td>nmodificacion</td><td>Número de modificación (solo para MODIFICACIÓN)</td></tr>
+  </tbody>
+</table>
+
+<h2>11.3 Implementación técnica</h2>
+<p>
+  La bitácora se construye mediante <strong>consultas SQL UNION ALL</strong> sobre las tablas
+  transaccionales de cada módulo, sin una tabla de log centralizada separada. Esto significa:
+</p>
+<ul>
+  <li>Los datos de auditoría se derivan directamente de los campos <code>creado_por</code>,
+      <code>creado_en</code>, <code>ip_creacion</code> de cada tabla de cabecera, más las tablas
+      de modificaciones asociadas.</li>
+  <li>La bitácora es siempre consistente con el estado real de la BD.</li>
+  <li>Soporta filtros combinados: módulo, acción, usuario, rango de fechas y número de vale.</li>
+  <li>Paginación de 50 registros por página.</li>
+</ul>
+
+
+<!-- SECCIÓN 12 — RESPALDO -->
+<h1 id="sec12" class="nueva-pagina">12. Módulo de Respaldo</h1>
+
+<p>
+  El sistema incluye un módulo de respaldo de base de datos accesible desde la interfaz
+  de administración, restringido a usuarios con el privilegio correspondiente.
+</p>
+
+<table class="doc-table">
+  <thead><tr><th>Aspecto</th><th>Detalle</th></tr></thead>
+  <tbody>
+    <tr><td>Tipo de respaldo</td><td>Volcado SQL completo de la base de datos <code>lavorope_dblavoro</code>.</td></tr>
+    <tr><td>Implementación</td><td><code>helpers/BackupService.php</code> ejecuta el volcado programático via PHP (usando PDO para listar tablas y generar INSERT) o llamada a <code>mysqldump</code> si está disponible.</td></tr>
+    <tr><td>Almacenamiento</td><td>Archivos <code>.sql</code> en <code>storage/backups/</code> con nombre que incluye fecha y hora.</td></tr>
+    <tr><td>Acceso</td><td>Descarga directa desde el navegador tras la generación.</td></tr>
+    <tr><td>Frecuencia recomendada</td><td>Diaria en producción. Manual desde la interfaz de administración o programada vía cron en el servidor.</td></tr>
+  </tbody>
+</table>
+
+<div class="diagrama-container">
+  <div class="mermaid">
+flowchart LR
+    ADM["Administrador\n(interfaz web)"] -->|"Solicita backup"| BC["BackupController\n/backup/generar"]
+    BC --> BS["BackupService.php"]
+    BS --> DB[("MySQL\nlavorope_dblavoro")]
+    DB -->|"Datos de todas las tablas"| BS
+    BS -->|"Genera archivo .sql"| STORAGE["storage/backups/\nbackup_2026-04-21_143000.sql"]
+    STORAGE -->|"Descarga HTTP"| ADM
+  </div>
+  <div class="diagrama-titulo">Figura 9 – Flujo del módulo de respaldo de base de datos</div>
+</div>
+
+
+<!-- PIE DE PÁGINA -->
+<div class="pie-pagina">
+  <p>
+    <strong>Lavoro-ERP</strong> — Modelo de Software — Versión 1.0 — Abril 2026<br>
+    Documento confidencial. Uso interno exclusivo de Lavoro.<br>
+    Desarrollado y documentado por <strong>IJE Soluciones Tecnológicas</strong>.
+  </p>
+</div>
+
+</body>
+</html>

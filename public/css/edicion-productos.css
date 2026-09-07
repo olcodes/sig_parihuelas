@@ -1,0 +1,104 @@
+.campo-editable {
+    padding: 3px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.campo-editable:hover {
+    background-color: #f8f9fa;
+}
+
+.campo-editable.editando {
+    background-color: #fff8dc;
+    border: 1px dashed #ccc;
+    min-height: 20px;
+    outline: none;
+}
+
+/* Estilos para el selector de productos */
+.producto-selector {
+    width: 100%;
+    padding: 3px;
+    border-radius: 3px;
+    border: 1px solid #ced4da;
+}
+
+.producto-selector:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.1rem rgba(0, 123, 255, 0.25);
+    outline: 0;
+}
+
+/* Estilos para los botones de acción en productos */
+.btn-guardar-producto, .btn-cancelar-producto, .btn-lapiz-producto, .btn-editar-producto {
+    margin-right: 3px;
+}
+
+/* Forzar visibilidad del botón cancelar en la grilla de productos */
+.btn-cancelar-producto {
+    background-color: #6c757d !important; /* gris neutral (bootstrap secondary) */
+    border-color: #6c757d !important;
+    color: #ffffff !important;
+}
+.btn-cancelar-producto:hover {
+    background-color: #5c636a !important;
+    border-color: #565e64 !important;
+}
+.btn-cancelar-producto i,
+.btn-cancelar-producto svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
+/* Mejorar visibilidad: tamaño, padding y sombra */
+.btn-guardar-producto, .btn-cancelar-producto {
+    /* Tamaño uniforme para botones de acción (guardar/aplicar y cancelar)
+       Ajustado a 32x24 con padding 2px para coincidir con otros botones */
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 24px !important;
+    padding: 2px !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+}
+.btn-cancelar-producto .bi {
+    color: #ffffff !important;
+    font-size: 1.05rem !important;
+    line-height: 1 !important;
+}
+
+/* Asegurar que los iconos dentro de botones de acción ocupen el mismo espacio */
+.btn-guardar-producto .bi, .btn-guardar-producto i,
+.btn-cancelar-producto .bi, .btn-cancelar-producto i {
+    display: inline-block !important;
+    width: 18px !important;
+    text-align: center !important;
+}
+.btn-cancelar-producto:focus {
+    outline: 2px solid rgba(255,255,255,0.25) !important;
+}
+
+/* Estilo para la X textual del botón cancelar (fallback si el icono no se renderiza) */
+.btn-cancelar-producto .cancel-text {
+    color: #ffffff !important;
+    font-weight: 700;
+    font-size: 14px !important;
+    line-height: 1 !important;
+}
+
+#mensajes-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 350px;
+}
+
+.alert {
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
