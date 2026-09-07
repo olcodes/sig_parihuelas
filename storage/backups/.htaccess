@@ -1,4 +1,0 @@
-# Bloquear acceso directo a los backups desde el navegador
-# Solo el controlador PHP autenticado puede servir estos archivos
-Order deny,allow
-Deny from all

@@ -12,7 +12,8 @@ class Database
     // private $password = '';
 
     // Conexión remota (comentar para desarrollo local, descomentar para hosting)
-    private $host = '204.93.224.230';
+    // private $host = '204.93.224.230';
+    private $host = 'localhost';
     private $dbName = 'lavorope_dblavoro';
     private $username = 'lavorope_adm';
     private $password = '7Jb4TcRpX120';

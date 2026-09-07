@@ -112,8 +112,8 @@ class Database
             // 🌐 Entorno HOSTING → conectar a MySQL local del servidor
             $this->host = 'localhost';
             $this->dbName = 'lavorope_dblavoro';
-            $this->username = 'lavorope_adm';
-            $this->password = '7Jb4TcRpX120';
+            $this->username = 'root';
+            $this->password = '';
         }
     }
 
