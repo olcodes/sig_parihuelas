@@ -104,7 +104,6 @@ class Database
         
         if ($isLocal) {
             // 🏠 Entorno LOCAL → conectar a BD remota vía IP
-            // $this->host = '204.93.224.230';
             $this->host = 'localhost';
             $this->dbName = 'lavorope_dblavoro';
             $this->username = 'lavorope_adm';

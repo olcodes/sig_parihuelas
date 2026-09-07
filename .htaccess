@@ -3,6 +3,11 @@ Options -MultiViews
 
 RewriteEngine On
 
+# ======================================================================
+# NUEVO: Redirigir recursos estáticos a la carpeta public
+# ======================================================================
+RewriteRule ^(css|js|img)/(.*)$ public/$1/$2 [L]
+
 # Redirigir la raíz al front controller (home)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -18,14 +23,8 @@ RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
 # ======================================================================
 # WORKAROUND: Reglas para evitar bloqueo de Imunify360 bot-protection
 # ======================================================================
-# Si Imunify360 está bloqueando requests AJAX legítimos, estas reglas
-# ayudan a despistar el bot-protection añadiendo un header y marcando
-# la request como no-bot.
-
-# Marcar peticiones AJAX (con X-Requested-With) como no-bot
 SetEnvIfNoCase X-Requested-With "XMLHttpRequest" IS_AJAX_REQUEST
 
-# Para peticiones AJAX, deshabilitar mod_security si está activo
 <IfModule mod_security.c>
     <If "%{ENV:IS_AJAX_REQUEST} =~ /^1$/">
         SecRuleEngine Off

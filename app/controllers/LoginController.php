@@ -28,8 +28,6 @@ class LoginController extends Controller
                 $userModel = $this->model('User');
                 $user = $userModel->findByUsername($username);
 
-                // echo "<pre>"; var_dump($user); echo "</pre>"; die();
-
                 if ($user && password_verify($password, $user['password'])) {
                     // Guardar todos los datos relevantes del usuario en la sesión
                     $_SESSION['user'] = [
