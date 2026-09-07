@@ -20,9 +20,28 @@
                 </div>
             </div>
 
+            <div class="d-flex align-items-center gap-2 mb-2" id="navegacionLotes" style="font-size:13px;">
+                <span class="fw-bold me-1">Lote de vales:</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLotePrimero" disabled title="Ir al primer lote">
+                    <i class="bi bi-chevron-double-left"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLoteAnterior" disabled title="Lote anterior">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <span id="loteInfo" class="fw-bold px-2">1 / 1</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLoteSiguiente" disabled title="Siguiente lote">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLoteUltimo" disabled title="Ir al último lote">
+                    <i class="bi bi-chevron-double-right"></i>
+                </button>
+                <span class="text-muted ms-2" id="loteDetalle" style="font-size:12px;">(500 vales por lote)</span>
+            </div>
+
             <div style="overflow-x:auto; max-height:calc(100vh - 280px); border:1px solid #dee2e6; border-radius:8px; width:100%;">
                 <table class="table table-bordered table-hover mb-0" id="grillaReporte" style="table-layout:auto; border-collapse: collapse !important;">
                     <colgroup>
+                        <col style="max-width:45px;">
                         <col style="max-width:110px;">
                         <col style="max-width:70px;">
                         <col style="max-width:80px;">
@@ -40,6 +59,7 @@
                     </colgroup>
                     <thead class="table-light" style="position:sticky; top:0; background:#f8f9fa; z-index:10;">
                         <tr style="background:#2563eb; color:#fff; font-weight:600;">
+                            <th style="text-align:center; vertical-align:middle; width:45px;">Item</th>
                             <th data-filterable="true" data-field="Fecha" style="text-align:center; vertical-align:middle;">Fecha</th>
                             <th data-filterable="true" data-field="Turno" style="text-align:center; vertical-align:middle;">Turno</th>
                             <th data-filterable="true" data-field="NVale" style="text-align:center; vertical-align:middle;">N° Vale</th>
@@ -58,7 +78,7 @@
                     </thead>
                     <tbody id="grillaReporteBody">
                         <tr>
-                            <td colspan="14" class="text-center py-4">
+                            <td colspan="15" class="text-center py-4">
                                 <div class="spinner-border text-primary" role="status" style="width:2rem; height:2rem;">
                                     <span class="visually-hidden">Cargando...</span>
                                 </div>

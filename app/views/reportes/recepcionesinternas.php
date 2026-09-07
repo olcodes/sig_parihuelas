@@ -1,4 +1,4 @@
-﻿<style>
+<style>
 @media print {
     body * {
         visibility: hidden !important;

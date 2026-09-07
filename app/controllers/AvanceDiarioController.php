@@ -295,8 +295,10 @@ class AvanceDiarioController extends Controller
 
             $metodo = $mapaMetodos[$campo];
             $detalle = $model->$metodo($fecha, $hora);
-            // Usar 'Total' si existe (para recepciones externas), sino 'Cantidad'
-            $campoTotal = (!empty($detalle) && isset($detalle[0]['Total'])) ? 'Total' : 'Cantidad';
+            // El campo a sumar depende del tipo de detalle:
+            //  - recepciones_externas: la celda suma rep.Total → usar 'Total'
+            //  - el resto (compras, ean, stock, total_stock): usar 'Cantidad'
+            $campoTotal = ($campo === 'recepciones_externas') ? 'Total' : 'Cantidad';
             // Total neto: ENTRADA suma, SALIDA resta
             $total = 0;
             foreach ($detalle as $row) {

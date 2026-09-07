@@ -775,4 +775,210 @@ class KardexParihuela extends Model
         }
         return null;
     }
+
+    /**
+     * Sincronizar el detalle de movimientos (recepciones y despachos) de un kardex
+     * existente con los movimientos vivos de la BD para la misma fecha+turno.
+     *
+     * Un kardex guardado se "congela" al persistirse: los vales creados o modificados
+     * con posterioridad al guardado no se reflejan en su detalle. Este método detecta
+     * diferencias entre el detalle guardado y el cálculo vivo y actualiza:
+     *  - Despachos: reemplaza el detalle completo (la grilla no tiene campos manuales).
+     *  - Recepciones: SOLO agrega áreas nuevas que falten y actualiza el total de áreas
+     *    existentes cuando el total vivo difiere (NO toca aptas/danadas/sucias/
+     *    por_seleccionar, que son campos manuales del usuario).
+     *  - Cabecera: total_recepcionado, total_despachado y campos derivados
+     *    (asperjadas_turno, despacho_asperjadas, sf_asperjadas) para mantener coherencia
+     *    con la fórmula que aplica el frontend al cargar.
+     *
+     * @param int $kardexId
+     * @param string $fecha
+     * @param int $turno
+     * @return array ['cambios' => bool, 'detalle' => string[], 'total_recepcionado' => float|null, 'total_despachado' => float|null]
+     */
+    public function sincronizarMovimientos($kardexId, $fecha, $turno)
+    {
+        $cambios = [];
+        $huboCambios = false;
+
+        // ============ DESPACHOS ============
+        $despachosVivos = $this->getDespachosParaKardex($fecha, $turno);
+        $despachosGuardados = $this->getDespachosDetalle($kardexId);
+
+        $mapVivo = [];
+        foreach ($despachosVivos as $d) {
+            $mapVivo[$d['subarea_nombre']] = (float)$d['total_despachado'];
+        }
+        $mapGuardado = [];
+        foreach ($despachosGuardados as $d) {
+            $mapGuardado[$d['subarea_nombre']] = (float)$d['total_despachado'];
+        }
+
+        if ($mapVivo != $mapGuardado) {
+            $huboCambios = true;
+
+            // Reemplazar el detalle de despachos completo (no hay campos manuales)
+            $this->db->prepare("DELETE FROM kardex_parihuelas_despachos WHERE KardexId = ?")->execute([$kardexId]);
+            $stmtDes = $this->db->prepare(
+                "INSERT INTO kardex_parihuelas_despachos
+                (KardexId, item, subarea_id, subarea_nombre, tratadas, especiales, total_despachado)
+                VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            $item = 1;
+            foreach ($despachosVivos as $d) {
+                $stmtDes->execute([
+                    $kardexId,
+                    $item++,
+                    $d['subarea_id'] ?? 0,
+                    $d['subarea_nombre'] ?? '',
+                    $d['tratadas'] ?? 0,
+                    $d['especiales'] ?? 0,
+                    $d['total_despachado'] ?? 0
+                ]);
+            }
+            $cambios[] = "Despachos actualizados: total " . array_sum($mapGuardado) . " → " . array_sum($mapVivo);
+        }
+
+        // ============ RECEPCIONES ============
+        $recepcionesVivas = $this->getRecepcionesParaKardex($fecha, $turno);
+        $recepcionesGuardadas = $this->getRecepcionesDetalle($kardexId);
+
+        $mapRecGuardado = [];
+        $maxItem = 0;
+        foreach ($recepcionesGuardadas as $r) {
+            $mapRecGuardado[$r['subarea_nombre']] = (float)$r['total_recepcionado'];
+            $maxItem = max($maxItem, (int)$r['item']);
+        }
+
+        $nuevasRecs = [];
+        foreach ($recepcionesVivas as $r) {
+            $nombre = $r['subarea_nombre'];
+            $total = (float)$r['total_recepcionado'];
+            if (!isset($mapRecGuardado[$nombre])) {
+                // Área nueva: agregarla con campos manuales en 0
+                $nuevasRecs[] = $r;
+            } elseif ((float)$mapRecGuardado[$nombre] != $total) {
+                // Área existente con total vivo distinto: actualizar solo el total
+                $this->db->prepare(
+                    "UPDATE kardex_parihuelas_recepciones SET total_recepcionado = ?
+                     WHERE KardexId = ? AND subarea_nombre = ?"
+                )->execute([$total, $kardexId, $nombre]);
+                $cambios[] = "Recepción actualizada: {$nombre} total {$mapRecGuardado[$nombre]} → {$total}";
+                $huboCambios = true;
+            }
+        }
+        if (!empty($nuevasRecs)) {
+            $huboCambios = true;
+            $stmtRec = $this->db->prepare(
+                "INSERT INTO kardex_parihuelas_recepciones
+                (KardexId, item, subarea_id, subarea_nombre, aptas, danadas, sucias, por_seleccionar, total_recepcionado)
+                VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?)"
+            );
+            foreach ($nuevasRecs as $r) {
+                $maxItem++;
+                $stmtRec->execute([
+                    $kardexId,
+                    $maxItem,
+                    $r['subarea_id'] ?? 0,
+                    $r['subarea_nombre'] ?? '',
+                    $r['total_recepcionado'] ?? 0
+                ]);
+                $cambios[] = "Recepción nueva agregada: {$r['subarea_nombre']} ({$r['total_recepcionado']})";
+            }
+        }
+
+        // ============ CABECERA (totales y stock final) ============
+        $totalRec = null;
+        $totalDes = null;
+        if ($huboCambios) {
+            $despachosFinales = $this->getDespachosDetalle($kardexId);
+            $recepcionesFinales = $this->getRecepcionesDetalle($kardexId);
+            $totalDes = (float)array_sum(array_column($despachosFinales, 'total_despachado'));
+            $totalRec = (float)array_sum(array_column($recepcionesFinales, 'total_recepcionado'));
+
+            $this->db->prepare(
+                "UPDATE kardex_parihuelas SET total_recepcionado = ?, total_despachado = ? WHERE Id = ?"
+            )->execute([$totalRec, $totalDes, $kardexId]);
+
+            // Recalcular y persistir el stock final según la fórmula del frontend
+            $this->recalcularStockFinal($kardexId, $totalDes);
+
+            error_log("[KardexParihuelas] sincronizarMovimientos kardex {$kardexId}: " . implode(' | ', $cambios));
+        }
+
+        return [
+            'cambios' => $huboCambios,
+            'detalle' => $cambios,
+            'total_recepcionado' => $totalRec,
+            'total_despachado' => $totalDes
+        ];
+    }
+
+    /**
+     * Recalcular y persistir el stock final (sf_*) de un kardex replicando la
+     * fórmula del frontend (public/js/kardexparihuelas.js -> calcularStockFinal).
+     * También mantiene coherencia en asperjadas_turno y despacho_asperjadas,
+     * que el frontend iguala al total despachado al cargar.
+     *
+     * @param int $kardexId
+     * @param float|null $totalDes Total despachado; si es null se calcula desde el detalle.
+     * @return float Nuevo sf_total
+     */
+    public function recalcularStockFinal($kardexId, $totalDes = null)
+    {
+        $stmtCab = $this->db->prepare("SELECT * FROM kardex_parihuelas WHERE Id = ?");
+        $stmtCab->execute([$kardexId]);
+        $cab = $stmtCab->fetch(PDO::FETCH_ASSOC);
+        if (!$cab) return 0;
+
+        if ($totalDes === null) {
+            $totalDes = (float)array_sum(array_column($this->getDespachosDetalle($kardexId), 'total_despachado'));
+        }
+        $totalDes = (float)$totalDes;
+
+        // El frontend iguala asperjadas_turno y despacho_asperjadas al total despachado
+        $asperjadasTurno = $totalDes;
+        $despachoAsperjadas = $totalDes;
+
+        // Totales de columnas de recepción (aptas/danadas/sucias/por_sel) desde el detalle
+        $recepciones = $this->getRecepcionesDetalle($kardexId);
+        $totalRecAptas = array_sum(array_column($recepciones, 'aptas'));
+        $totalRecDanadas = array_sum(array_column($recepciones, 'danadas'));
+        $totalRecSucias = array_sum(array_column($recepciones, 'sucias'));
+        $totalRecPorSel = array_sum(array_column($recepciones, 'por_seleccionar'));
+
+        $sf_asperjadas = max(0, (float)$cab['si_asperjadas'] + $asperjadasTurno - $despachoAsperjadas);
+        $sf_aptas = max(0, (float)$cab['si_aptas'] + (float)$totalRecAptas + (float)$cab['clasif_aptas'] + (float)$cab['reparadas_aptas'] + (float)$cab['clasificadas_aptas'] + (float)$cab['reseleccion'] - $asperjadasTurno + (float)$cab['observadas']);
+        $sf_danadas = max(0, (float)$cab['si_danadas'] + (float)$totalRecDanadas + (float)$cab['clasif_danadas'] - (float)$cab['reparadas_total'] + (float)$cab['clasificadas_danadas'] - (float)$cab['reseleccion']);
+        $sf_sucias = max(0, (float)$cab['si_sucias'] + (float)$totalRecSucias + (float)$cab['reparadas_sucias'] + (float)$cab['clasificadas_sucias'] - (float)$cab['total_parihuelas_lavadas'] - (float)$cab['clasif_aptas'] - (float)$cab['clasif_danadas']);
+        $sf_por_sel = max(0, (float)$cab['si_por_seleccionar'] + (float)$totalRecPorSel - (float)$cab['clasificadas_total']);
+        $sf_lavadas_sec = (float)$cab['sf_lavadas_secadas'];
+        $sf_total = $sf_asperjadas + $sf_aptas + $sf_danadas + $sf_sucias + $sf_por_sel + $sf_lavadas_sec;
+
+        $this->db->prepare(
+            "UPDATE kardex_parihuelas SET
+                asperjadas_turno = :asp_turno,
+                despacho_asperjadas = :desp_asp,
+                sf_asperjadas = :sf_asperjadas,
+                sf_aptas = :sf_aptas,
+                sf_danadas = :sf_danadas,
+                sf_sucias = :sf_sucias,
+                sf_por_seleccionar = :sf_por_sel,
+                sf_total = :sf_total
+             WHERE Id = :id"
+        )->execute([
+            ':asp_turno' => $asperjadasTurno,
+            ':desp_asp' => $despachoAsperjadas,
+            ':sf_asperjadas' => $sf_asperjadas,
+            ':sf_aptas' => $sf_aptas,
+            ':sf_danadas' => $sf_danadas,
+            ':sf_sucias' => $sf_sucias,
+            ':sf_por_sel' => $sf_por_sel,
+            ':sf_total' => $sf_total,
+            ':id' => $kardexId
+        ]);
+
+        error_log("[KardexParihuelas] recalcularStockFinal kardex {$kardexId}: sf_total={$sf_total}");
+        return $sf_total;
+    }
 }

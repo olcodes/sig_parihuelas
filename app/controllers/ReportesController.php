@@ -2453,6 +2453,23 @@ class ReportesController extends Controller {
             }
 
             // ============================================================
+            // ORDEN EN EL EXCEL: numero de vale ascendente (antiguo primero)
+            // ============================================================
+            // La interfaz muestra los vales del mas reciente al mas antiguo.
+            // Aqui se invierte SOLO el archivo exportado, manteniendo los
+            // filtros ya aplicados por el cliente. Se ordena ademas por guia
+            // para que las filas de una misma guia queden consecutivas y el
+            // merge de la columna ITEM siga funcionando.
+            usort($filasPivot, function ($a, $b) {
+                $va = (int)preg_replace('/\D/', '', (string)($a['NVale'] ?? ''));
+                $vb = (int)preg_replace('/\D/', '', (string)($b['NVale'] ?? ''));
+                if ($va !== $vb) {
+                    return $va <=> $vb;
+                }
+                return strcmp((string)($a['NumeroGuia'] ?? ''), (string)($b['NumeroGuia'] ?? ''));
+            });
+
+            // ============================================================
             // CREAR EXCEL CON ESTILO PROFESIONAL
             // ============================================================
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -2461,13 +2478,13 @@ class ReportesController extends Controller {
             $sheet->getSheetView()->setZoomScale(80);
             $sheet->setShowGridlines(false);
 
-            // Cabeceras (mismo orden que el reporte)
+            // Cabeceras (mismo orden que el reporte: ITEM al inicio + resto)
             $cabeceras = [
-                'A1' => 'FECHA', 'B1' => 'TURNO', 'C1' => 'NÃ‚Â° VALE',
-                'D1' => 'NÃ‚Â° GUIA', 'E1' => 'NÃ‚Â° DOC. REF.', 'F1' => 'ORIGEN',
-                'G1' => 'TRANSPORTISTA', 'H1' => 'CHOFER', 'I1' => 'OBSERVACIONES',
-                'J1' => '19003031', 'K1' => '19002924', 'L1' => '19003730',
-                'M1' => '19003521', 'N1' => 'TOTAL GRAL.'
+                'A1' => 'ITEM', 'B1' => 'FECHA', 'C1' => 'TURNO', 'D1' => 'N° VALE',
+                'E1' => 'N° GUIA', 'F1' => 'N° DOC. REF.', 'G1' => 'ORIGEN',
+                'H1' => 'TRANSPORTISTA', 'I1' => 'CHOFER', 'J1' => 'OBSERVACIONES',
+                'K1' => '19003031', 'L1' => '19002924', 'M1' => '19003730',
+                'N1' => '19003521', 'O1' => 'TOTAL GRAL.'
             ];
             foreach ($cabeceras as $celda => $valor) {
                 $sheet->setCellValue($celda, $valor);
@@ -2479,60 +2496,146 @@ class ReportesController extends Controller {
                 'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
                 'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER]
             ];
-            $sheet->getStyle('A1:N1')->applyFromArray($styleHeader);
+            $sheet->getStyle('A1:O1')->applyFromArray($styleHeader);
             $sheet->freezePane('A2');
             $sheet->getRowDimension(1)->setRowHeight(20);
 
-            // Escribir datos
+            // Escribir datos (columna ITEM con combinación vertical por guía + resto)
             $filaExcel = 2;
+            $contadorItem = 1;
+            $claveAnterior = null;
+            $filaInicioGrupo = null;
+            $filaFinGrupo = null;
+            $mergesItem = [];
+
             foreach ($filasPivot as $row) {
+                // Misma clave de agrupación que usa la grilla en el cliente (NVale|NumeroGuia)
+                $claveGuia = (string)($row['NVale'] ?? '') . '|' . (string)($row['NumeroGuia'] ?? '');
+
+                // Si cambió la guía, cerrar el grupo anterior y guardar su rango de merge
+                if ($claveAnterior !== null && $claveGuia !== $claveAnterior) {
+                    if ($filaFinGrupo > $filaInicioGrupo) {
+                        $mergesItem[] = 'A' . $filaInicioGrupo . ':A' . $filaFinGrupo;
+                    }
+                    $filaInicioGrupo = $filaExcel;
+                } elseif ($filaInicioGrupo === null) {
+                    $filaInicioGrupo = $filaExcel;
+                }
+                $claveAnterior = $claveGuia;
+                $filaFinGrupo = $filaExcel;
+
+                // El item solo se escribe en la primera fila del grupo; las demás
+                // quedan cubiertas por el merge vertical (equivalente al rowspan)
+                if ($filaExcel === $filaInicioGrupo) {
+                    $sheet->setCellValue('A' . $filaExcel, $contadorItem++);
+                }
+
                 $fechaFormateada = !empty($row['Fecha']) ? date('d/m/Y', strtotime($row['Fecha'])) : '';
                 $nroVale = isset($row['NVale']) ? str_pad(preg_replace('/\D/', '', (string)$row['NVale']), 6, '0', STR_PAD_LEFT) : '';
 
-                $sheet->setCellValue('A' . $filaExcel, $fechaFormateada);
-                $sheet->setCellValue('B' . $filaExcel, $row['Turno'] ?? '');
-                $sheet->setCellValue('C' . $filaExcel, $nroVale);
-                $sheet->setCellValue('D' . $filaExcel, $row['NumeroGuia'] ?? '');
-                $sheet->setCellValue('E' . $filaExcel, $row['NumeroDocRef'] ?? '');
-                $sheet->setCellValue('F' . $filaExcel, $row['Origen'] ?? '');
-                $sheet->setCellValue('G' . $filaExcel, $row['Transportista'] ?? $row['Empresa'] ?? '');
-                $sheet->setCellValue('H' . $filaExcel, $row['Chofer'] ?? '');
-                $sheet->setCellValue('I' . $filaExcel, $row['Observaciones'] ?? $row['ObservacionTexto'] ?? '');
-                $sheet->setCellValue('J' . $filaExcel, $row['Prod19003031'] ?? 0);
-                $sheet->setCellValue('K' . $filaExcel, $row['Prod19002924'] ?? 0);
-                $sheet->setCellValue('L' . $filaExcel, $row['Prod19003730'] ?? 0);
-                $sheet->setCellValue('M' . $filaExcel, $row['Prod19003521'] ?? 0);
-                $sheet->setCellValue('N' . $filaExcel, $row['TotalGeneral'] ?? 0);
+                $sheet->setCellValue('B' . $filaExcel, $fechaFormateada);
+                $sheet->setCellValue('C' . $filaExcel, $row['Turno'] ?? '');
+                $sheet->setCellValue('D' . $filaExcel, $nroVale);
+                $sheet->setCellValue('E' . $filaExcel, $row['NumeroGuia'] ?? '');
+                $sheet->setCellValue('F' . $filaExcel, $row['NumeroDocRef'] ?? '');
+                $sheet->setCellValue('G' . $filaExcel, $row['Origen'] ?? '');
+                $sheet->setCellValue('H' . $filaExcel, $row['Transportista'] ?? $row['Empresa'] ?? '');
+                $sheet->setCellValue('I' . $filaExcel, $row['Chofer'] ?? '');
+                $sheet->setCellValue('J' . $filaExcel, $row['Observaciones'] ?? $row['ObservacionTexto'] ?? '');
+                $sheet->setCellValue('K' . $filaExcel, $row['Prod19003031'] ?? 0);
+                $sheet->setCellValue('L' . $filaExcel, $row['Prod19002924'] ?? 0);
+                $sheet->setCellValue('M' . $filaExcel, $row['Prod19003730'] ?? 0);
+                $sheet->setCellValue('N' . $filaExcel, $row['Prod19003521'] ?? 0);
+                $sheet->setCellValue('O' . $filaExcel, $row['TotalGeneral'] ?? 0);
                 $filaExcel++;
             }
 
+            // Cerrar el último grupo
+            if ($filaInicioGrupo !== null && $filaFinGrupo > $filaInicioGrupo) {
+                $mergesItem[] = 'A' . $filaInicioGrupo . ':A' . $filaFinGrupo;
+            }
+
+            // Aplicar la combinación vertical de la columna ITEM por cada guía repetida
+            foreach ($mergesItem as $rango) {
+                $sheet->mergeCells($rango);
+            }
+            // Centrado vertical de la celda superior de cada grupo combinado
+            foreach ($mergesItem as $rango) {
+                $celdaTop = explode(':', $rango)[0];
+                $sheet->getStyle($celdaTop)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            }
+
+            // ============================================================
+            // FILA DE TOTALES AL FINAL
+            // ============================================================
+            // Sumar cada columna de producto (desde la primera columna que
+            // sigue a OBSERVACIONES) hasta la columna TOTAL GRAL.
+            $sumProd1 = 0; $sumProd2 = 0; $sumProd3 = 0; $sumProd4 = 0; $sumTotalGral = 0;
+            foreach ($filasPivot as $row) {
+                $sumProd1 += (float)($row['Prod19003031'] ?? 0);
+                $sumProd2 += (float)($row['Prod19002924'] ?? 0);
+                $sumProd3 += (float)($row['Prod19003730'] ?? 0);
+                $sumProd4 += (float)($row['Prod19003521'] ?? 0);
+                $sumTotalGral += (float)($row['TotalGeneral'] ?? 0);
+            }
+
+            $filaTotal = $filaExcel;
+            // Combinar celdas desde la primera columna (A) hasta OBSERVACIONES (J)
+            // para que la etiqueta "TOTAL" se vea en una celda combinada
+            $sheet->mergeCells('A' . $filaTotal . ':J' . $filaTotal);
+            $sheet->setCellValue('A' . $filaTotal, 'TOTAL');
+            $sheet->setCellValue('K' . $filaTotal, $sumProd1);
+            $sheet->setCellValue('L' . $filaTotal, $sumProd2);
+            $sheet->setCellValue('M' . $filaTotal, $sumProd3);
+            $sheet->setCellValue('N' . $filaTotal, $sumProd4);
+            $sheet->setCellValue('O' . $filaTotal, $sumTotalGral);
+            $filaExcel++;
+
             // Auto-ajustar columnas
-            foreach (range('A', 'N') as $col) {
+            foreach (range('A', 'O') as $col) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
 
             // Bordes y estilos de datos
             $lastRow = $filaExcel - 1;
             if ($lastRow >= 1) {
-                $range = 'A1:N' . $lastRow;
+                $range = 'A1:O' . $lastRow;
                 $sheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
 
                 // Filas alternadas
                 for ($r = 2; $r <= $lastRow; $r++) {
                     if ($r % 2 == 0) {
-                        $sheet->getStyle('A'.$r.':N'.$r)->getFill()
+                        $sheet->getStyle('A'.$r.':O'.$r)->getFill()
                             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                             ->getStartColor()->setRGB('F5F5F5');
                     }
-                    // Centrar columnas de productos y total
-                    $sheet->getStyle('J'.$r)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                    // Centrar columna ITEM, columnas de productos y total
+                    $sheet->getStyle('A'.$r)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle('K'.$r)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle('L'.$r)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle('M'.$r)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle('N'.$r)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle('O'.$r)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                     // Negrita para Total
-                    $sheet->getStyle('N'.$r)->getFont()->setBold(true);
+                    $sheet->getStyle('O'.$r)->getFont()->setBold(true);
                 }
+            }
+
+            // ============================================================
+            // ESTILO DE LA FILA DE TOTALES
+            // ============================================================
+            // Resaltar con fondo azul claro, negrita y centrado desde la
+            // columna de productos (K) hasta TOTAL GRAL. (O)
+            $styleTotalFila = [
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E2F3']]
+            ];
+            $sheet->getStyle('A' . $filaTotal . ':O' . $filaTotal)->applyFromArray($styleTotalFila);
+            // Centrar la etiqueta "TOTAL" dentro de la celda combinada A:J
+            $sheet->getStyle('A' . $filaTotal)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('A' . $filaTotal)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            foreach (['K', 'L', 'M', 'N', 'O'] as $colTotal) {
+                $sheet->getStyle($colTotal . $filaTotal)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
             }
 
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
@@ -2580,6 +2683,27 @@ class ReportesController extends Controller {
             } catch (Exception $e) {
                 error_log("No se pudieron ajustar timeouts MySQL: " . $e->getMessage());
             }
+
+            // Leer filtros de exportación (rango de fechas y módulos seleccionados)
+            $filtros = [];
+            $fechaDesde = isset($_GET['fechaDesde']) ? trim($_GET['fechaDesde']) : '';
+            $fechaHasta = isset($_GET['fechaHasta']) ? trim($_GET['fechaHasta']) : '';
+            // Normalizar fechaHasta para incluir todo el último día del rango (las fechas son DATETIME)
+            if ($fechaHasta !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaHasta)) {
+                $fechaHasta .= ' 23:59:59';
+            }
+            if ($fechaDesde !== '') $filtros['fechaDesde'] = $fechaDesde;
+            if ($fechaHasta !== '') $filtros['fechaHasta'] = $fechaHasta;
+            $modulosRaw = isset($_GET['modulos']) ? trim($_GET['modulos']) : '';
+            $modulos = [];
+            if ($modulosRaw !== '') {
+                $modulos = array_values(array_filter(array_map('trim', explode(',', $modulosRaw)), function($m){ return $m !== ''; }));
+            }
+            // Si no se especifican módulos, exportar todos por defecto
+            if (empty($modulos)) {
+                $modulos = ['despacho_interno', 'despacho_externo', 'recepcion_interna', 'recepcion_externa'];
+            }
+            error_log('exportarConsolidado - filtros: ' . json_encode($filtros) . ' | modulos: ' . json_encode($modulos));
 
             // CARGAR PLANTILLA
             $plantillaPath = __DIR__ . '/../../storage/templates/plantilla_consolidado.xlsx';
@@ -2640,30 +2764,53 @@ class ReportesController extends Controller {
             unset($reader);
             gc_collect_cycles();
             
-            error_log('Insertando datos en Despachos Internos');
-            $this->insertarDatosDespachosInternos($spreadsheet);
-            gc_collect_cycles();
-            
-            error_log('Insertando datos en Despachos Externos');
-            $this->insertarDatosDespachosExternos($spreadsheet);
-            gc_collect_cycles();
-            
-            error_log('Insertando datos en Recepciones Internas');
-            $this->insertarDatosRecepcionesInternas($spreadsheet);
-            gc_collect_cycles();
-            
-            error_log('Insertando datos en Recepciones Externas');
-            $this->insertarDatosRecepcionesExternas($spreadsheet);
+            // === Despachos Internos ===
+            if (in_array('despacho_interno', $modulos)) {
+                error_log('Insertando datos en Despachos Internos');
+                $this->insertarDatosDespachosInternos($spreadsheet, $filtros);
+            } else {
+                $this->limpiarHoja($spreadsheet, 'Despachos Internos');
+            }
             gc_collect_cycles();
 
-            // Insertar hoja Picking (registros equivalentes a exportarPicking)
-            error_log('Insertando datos en Picking (hoja adicional)');
-            $this->insertarDatosPicking($spreadsheet);
+            // === Despachos Externos ===
+            if (in_array('despacho_externo', $modulos)) {
+                error_log('Insertando datos en Despachos Externos');
+                $this->insertarDatosDespachosExternos($spreadsheet, $filtros);
+            } else {
+                $this->limpiarHoja($spreadsheet, 'Despachos Externos');
+            }
             gc_collect_cycles();
 
-            // Insertar hoja Recepciones Ext. (hoja adicional con los registros del acceso "Reporte Recepciones Ext.")
-            error_log('Insertando datos en Recepciones Ext. (hoja adicional)');
-            $this->insertarDatosRecepcionesExt($spreadsheet);
+            // === Recepciones Internas ===
+            if (in_array('recepcion_interna', $modulos)) {
+                error_log('Insertando datos en Recepciones Internas');
+                $this->insertarDatosRecepcionesInternas($spreadsheet, $filtros);
+            } else {
+                $this->limpiarHoja($spreadsheet, 'Recepciones Internas');
+            }
+            gc_collect_cycles();
+
+            // === Recepciones Externas (una sola consulta reutilizada en 3 hojas) ===
+            if (in_array('recepcion_externa', $modulos)) {
+                error_log('Insertando datos en Recepciones Externas / Picking / Recepciones Ext.');
+                $modelRecepcionExterna = $this->model('RecepcionExterna');
+                $resultRecepcionExterna = $modelRecepcionExterna->getReporte($filtros, 10000, 0);
+                $recepcionesExt = $resultRecepcionExterna['data'];
+                unset($modelRecepcionExterna);
+                unset($resultRecepcionExterna);
+                error_log('Recepciones Externas - Total registros (una sola consulta): ' . count($recepcionesExt));
+                $this->insertarDatosRecepcionesExternas($spreadsheet, $recepcionesExt);
+                gc_collect_cycles();
+                $this->insertarDatosPicking($spreadsheet, $recepcionesExt);
+                gc_collect_cycles();
+                $this->insertarDatosRecepcionesExt($spreadsheet, $recepcionesExt);
+                unset($recepcionesExt);
+            } else {
+                $this->limpiarHoja($spreadsheet, 'Recepciones Externas');
+                $this->limpiarHoja($spreadsheet, 'Picking');
+                $this->limpiarHoja($spreadsheet, 'Recepciones Ext.');
+            }
             gc_collect_cycles();
 
             $spreadsheet->setActiveSheetIndex(0);
@@ -2812,7 +2959,7 @@ class ReportesController extends Controller {
             // PASO 5: Enviar archivo al navegador
             ob_end_clean();
 
-                        $filename = 'Reporte de RecepciÃƒÂ³n y Despachos al ' . date('d-m-Y') . '.xlsx';
+                        $filename = 'Reporte de Recepci' . "\u{00F3}" . 'n y Despachos al ' . date('d-m-Y') . '.xlsx';
 
                         // Preparar Content-Disposition con soporte UTF-8 (RFC 5987) y fallback
                         $utf8Filename = $filename;
@@ -2860,6 +3007,23 @@ class ReportesController extends Controller {
             
             header('Content-Type: text/html; charset=utf-8');
             die('<h1>Error al generar el reporte consolidado</h1><p>' . htmlspecialchars($e->getMessage()) . '</p>');
+        }
+    }
+    
+    /**
+     * Limpia las filas de datos de una hoja (deja solo la cabecera en fila 1).
+     * Se usa para las hojas de módulos no seleccionados en la exportación.
+     */
+    private function limpiarHoja($spreadsheet, $nombreHoja) {
+        try {
+            $sheet = $spreadsheet->getSheetByName($nombreHoja);
+            if (!$sheet) return;
+            $highestRow = $sheet->getHighestRow();
+            if ($highestRow > 1) {
+                $sheet->removeRow(2, $highestRow - 1);
+            }
+        } catch (Exception $e) {
+            error_log('limpiarHoja - ' . $nombreHoja . ': ' . $e->getMessage());
         }
     }
     
@@ -3147,7 +3311,10 @@ class ReportesController extends Controller {
                                 $sheet->setCellValue('H' . $filaExcel, $recepcion['Chofer'] ?? '');
                                 $sheet->setCellValue('I' . $filaExcel, $recepcion['Brevete'] ?? '');
                                 $sheet->setCellValue('J' . $filaExcel, $guia['NumeroGuia'] ?? '');
-                                $sheet->setCellValue('K' . $filaExcel, $guia['ObservacionTexto'] ?? '');
+                                // OBSERVACIÓN: mostrar el detalle del producto (ej. "DEJA 20 UND DEL CODIGO ... GUIA ...");
+                                // si el producto no tiene detalle, usar la observación general de la guía
+                                $obsDetalle = trim($producto['TextoObservaciones'] ?? '');
+                                $sheet->setCellValue('K' . $filaExcel, $obsDetalle !== '' ? $obsDetalle : ($guia['ObservacionTexto'] ?? ''));
                                 $sheet->setCellValue('L' . $filaExcel, $guia['CodigoProductoObs'] ?? '');
                                 $sheet->setCellValue('M' . $filaExcel, $guia['CantidadObservada'] ?? '');
                                 $sheet->setCellValue('N' . $filaExcel, $producto['CodigoProducto'] ?? '');
@@ -3171,7 +3338,7 @@ class ReportesController extends Controller {
     
     // ==================== MÃƒâ€°TODOS DE INSERCIÃƒâ€œN DE DATOS (CON PLANTILLA) ====================
     
-    private function insertarDatosDespachosInternos($spreadsheet) {
+    private function insertarDatosDespachosInternos($spreadsheet, $filtros = []) {
         $sheet = $spreadsheet->getSheetByName('Despachos Internos');
         if (!$sheet) {
             throw new Exception('No se encontrÃƒÂ³ la hoja "Despachos Internos" en la plantilla');
@@ -3193,7 +3360,7 @@ class ReportesController extends Controller {
         
         // Obtener datos y liberar modelo inmediatamente
         $model = $this->model('DespachoInterno');
-        $result = $model->getReporte([], 10000, 0);
+        $result = $model->getReporte($filtros, 10000, 0);
         $despachos = $result['data'];
         unset($model);
         unset($result);
@@ -3240,7 +3407,7 @@ class ReportesController extends Controller {
         }
     }
     
-    private function insertarDatosDespachosExternos($spreadsheet) {
+    private function insertarDatosDespachosExternos($spreadsheet, $filtros = []) {
         $sheet = $spreadsheet->getSheetByName('Despachos Externos');
         if (!$sheet) {
             throw new Exception('No se encontrÃƒÂ³ la hoja "Despachos Externos" en la plantilla');
@@ -3262,9 +3429,10 @@ class ReportesController extends Controller {
         
         // Obtener datos y liberar modelo inmediatamente
         $model = $this->model('DespachoExterno');
-        $result = $model->getReporte([], 10000, 0);
+        $result = $model->getReporte($filtros, 10000, 0);
         $despachos = $result['data'];
         // Mapear ids a textos legibles para la hoja consolidada (Turno, Despachador, Destino, Chofer, Transportista)
+        // OPTIMIZACIÓN: precargar catálogos completos en memoria (1 consulta por tabla) para evitar N+1
         try {
             $destinoModel = $this->model('Destino');
             $clienteExternoModel = $this->model('ClienteExterno');
@@ -3274,10 +3442,20 @@ class ReportesController extends Controller {
             $turnoModel = $this->model('Turno');
 
             $cacheDestino = [];
+            $cacheClienteExterno = [];
             $cacheChofer = [];
             $cacheTransportista = [];
             $cacheResponsable = [];
             $cacheTurno = [];
+
+            // Precargar todos los catálogos una sola vez (evita getById dentro del loop).
+            // Cada catálogo se precarga de forma independiente para no abortar el mapeo si una tabla falla.
+            try { foreach ($turnoModel->getAllForSelect() as $_t) { $cacheTurno[(string)$_t['Id']] = $_t['Turno']; } } catch (Exception $__pc) { error_log('Precarga turnos: ' . $__pc->getMessage()); }
+            try { foreach ($destinoModel->getAll() as $_d) { $cacheDestino[(string)$_d['Id']] = $_d['Empresa'] ?? $_d['Destino'] ?? $_d['Nombre'] ?? (string)$_d['Id']; } } catch (Exception $__pc) { error_log('Precarga destinos: ' . $__pc->getMessage()); }
+            try { foreach ($clienteExternoModel->getAllForSelect() as $_c) { $cacheClienteExterno[(string)$_c['Id']] = $_c['RazonSocial'] ?? $_c['Empresa'] ?? ''; } } catch (Exception $__pc) { error_log('Precarga clientes externos: ' . $__pc->getMessage()); }
+            try { foreach ($choferModel->getAll() as $_ch) { $cacheChofer[(string)$_ch['Id']] = $_ch['ApellidosNombres'] ?? $_ch['Nombres'] ?? (string)$_ch['Id']; } } catch (Exception $__pc) { error_log('Precarga choferes: ' . $__pc->getMessage()); }
+            try { foreach ($transportistaModel->getAll() as $_tr) { $cacheTransportista[(string)$_tr['Id']] = $_tr['Empresa'] ?? $_tr['RUC'] ?? (string)$_tr['Id']; } } catch (Exception $__pc) { error_log('Precarga transportistas: ' . $__pc->getMessage()); }
+            try { foreach ($responsableModel->getAll() as $_r) { $cacheResponsable[(string)$_r['Id']] = $_r['NombresApellidos'] ?? (string)$_r['Id']; } } catch (Exception $__pc) { error_log('Precarga responsables: ' . $__pc->getMessage()); }
 
             foreach ($despachos as &$row) {
                 // Turno
@@ -3295,22 +3473,21 @@ class ReportesController extends Controller {
                 $destId = $row['Destino'] ?? $row['DestinoOriginal'] ?? $row['destino'] ?? null;
                 if ($destId !== null && $destId !== '' && !is_array($destId)) {
                     $key = (string)$destId;
-                    if (!isset($cacheDestino[$key])) {
-                        if (is_numeric($destId)) {
-                            try { $d = method_exists($destinoModel,'getByIdFlexible') ? $destinoModel->getByIdFlexible((int)$destId) : $destinoModel->getById((int)$destId); $cacheDestino[$key] = $d ? ($d['Empresa'] ?? $d['Destino'] ?? ($d['Nombre'] ?? (string)$destId)) : (string)$destId; } catch(Exception $__d) { $cacheDestino[$key] = (string)$destId; }
-                        } else {
-                            $cacheDestino[$key] = $destId;
-                        }
+                    $resolved = $cacheDestino[$key] ?? null;
+                    if (($resolved === null || $resolved === '') && is_numeric($destId)) {
+                        $ce = $cacheClienteExterno[$key] ?? '';
+                        if ($ce !== '') $resolved = $ce;
                     }
-                    if ((string)$cacheDestino[$key] === (string)$destId) {
-                        $resolved = null;
-                        try { if (method_exists($clienteExternoModel,'getById')) { $ce = $clienteExternoModel->getById((int)$destId); if ($ce && !empty($ce['Empresa'])) $resolved = $ce['Empresa']; elseif ($ce && !empty($ce['RazonSocial'])) $resolved = $ce['RazonSocial']; } } catch(Exception $__ce) {}
-                        if ($resolved === null) { $alt = ''; if (!empty($row['RUC'])) $alt .= $row['RUC']; if (!empty($row['Direccion'])) { $addr = trim($row['Direccion']); if ($addr !== '') { if ($alt !== '') $alt .= ' - '; $alt .= (strlen($addr) > 120) ? substr($addr,0,120) . '...' : $addr; } } if ($alt !== '') $resolved = $alt; }
-                        if ($resolved === null) $resolved = 'Destino #' . (string)$destId;
-                        $cacheDestino[$key] = $resolved;
+                    if ($resolved === null) {
+                        $alt = '';
+                        if (!empty($row['RUC'])) $alt .= $row['RUC'];
+                        if (!empty($row['Direccion'])) { $addr = trim($row['Direccion']); if ($addr !== '') { if ($alt !== '') $alt .= ' - '; $alt .= (strlen($addr) > 120) ? substr($addr,0,120) . '...' : $addr; } }
+                        if ($alt !== '') $resolved = $alt;
                     }
-                    $row['Destino'] = $cacheDestino[$key];
-                    $row['DestinoTexto'] = $cacheDestino[$key];
+                    if ($resolved === null) $resolved = 'Destino #' . (string)$destId;
+                    $cacheDestino[$key] = $resolved;
+                    $row['Destino'] = $resolved;
+                    $row['DestinoTexto'] = $resolved;
                 }
 
                 // Chofer
@@ -3425,7 +3602,7 @@ class ReportesController extends Controller {
         }
     }
     
-    private function insertarDatosRecepcionesInternas($spreadsheet) {
+    private function insertarDatosRecepcionesInternas($spreadsheet, $filtros = []) {
         $sheet = $spreadsheet->getSheetByName('Recepciones Internas');
         if (!$sheet) {
             throw new Exception('No se encontrÃƒÂ³ la hoja "Recepciones Internas" en la plantilla');
@@ -3447,7 +3624,7 @@ class ReportesController extends Controller {
         
         // Obtener datos y liberar modelo inmediatamente
         $model = $this->model('RecepcionInterna');
-        $result = $model->getReporte([], 10000, 0);
+        $result = $model->getReporte($filtros, 10000, 0);
         $recepciones = $result['data'];
         unset($model);
         unset($result);
@@ -3495,7 +3672,7 @@ class ReportesController extends Controller {
         }
     }
     
-    private function insertarDatosRecepcionesExternas($spreadsheet) {
+    private function insertarDatosRecepcionesExternas($spreadsheet, $recepciones = []) {
         $sheet = $spreadsheet->getSheetByName('Recepciones Externas');
         if (!$sheet) {
             throw new Exception('No se encontrÃƒÂ³ la hoja "Recepciones Externas" en la plantilla');
@@ -3514,13 +3691,6 @@ class ReportesController extends Controller {
         } catch (Exception $e) {
             error_log("Advertencia MySQL: " . $e->getMessage());
         }
-        
-        // Obtener datos y liberar modelo inmediatamente
-        $model = $this->model('RecepcionExterna');
-        $result = $model->getReporte([], 10000, 0);
-        $recepciones = $result['data'];
-        unset($model);
-        unset($result);
         
         error_log('Insertando ' . count($recepciones) . ' recepciones externas');
         
@@ -3544,7 +3714,10 @@ class ReportesController extends Controller {
                                 $sheet->setCellValue('H' . $filaExcel, $recepcion['Chofer'] ?? '');
                                 $sheet->setCellValue('I' . $filaExcel, $recepcion['Brevete'] ?? '');
                                 $sheet->setCellValue('J' . $filaExcel, $guia['NumeroGuia'] ?? '');
-                                $sheet->setCellValue('K' . $filaExcel, $guia['ObservacionTexto'] ?? '');
+                                // OBSERVACIÓN: mostrar el detalle del producto (ej. "DEJA 20 UND DEL CODIGO ... GUIA ...");
+                                // si el producto no tiene detalle, usar la observación general de la guía
+                                $obsDetalle = trim($producto['TextoObservaciones'] ?? '');
+                                $sheet->setCellValue('K' . $filaExcel, $obsDetalle !== '' ? $obsDetalle : ($guia['ObservacionTexto'] ?? ''));
                                 $sheet->setCellValue('L' . $filaExcel, $guia['CodigoProductoObs'] ?? '');
                                 $sheet->setCellValue('M' . $filaExcel, $guia['CantidadObservada'] ?? '');
                                 $sheet->setCellValue('N' . $filaExcel, $producto['CodigoProducto'] ?? '');
@@ -3571,7 +3744,7 @@ class ReportesController extends Controller {
         }
     }
     
-    private function insertarDatosPicking($spreadsheet) {
+    private function insertarDatosPicking($spreadsheet, $recepciones = []) {
         $sheet = $spreadsheet->getSheetByName('Picking');
         if (!$sheet) {
             throw new Exception('No se encontrÃƒÂ³ la hoja "Picking" en la plantilla');
@@ -3590,13 +3763,6 @@ class ReportesController extends Controller {
         } catch (Exception $e) {
             error_log("Advertencia MySQL: " . $e->getMessage());
         }
-        
-        // Obtener datos y liberar modelo inmediatamente
-        $model = $this->model('RecepcionExterna');
-        $result = $model->getReporte([], 10000, 0);
-        $recepciones = $result['data'];
-        unset($model);
-        unset($result);
         
         error_log('Insertando ' . count($recepciones) . ' registros en Picking');
         
@@ -3642,7 +3808,7 @@ class ReportesController extends Controller {
         }
     }
     
-    private function insertarDatosRecepcionesExt($spreadsheet) {
+    private function insertarDatosRecepcionesExt($spreadsheet, $recepciones = []) {
         $sheet = $spreadsheet->getSheetByName('Recepciones Ext.');
         if (!$sheet) {
             throw new Exception('No se encontrÃƒÂ³ la hoja "Recepciones Ext." en la plantilla');
@@ -3661,13 +3827,6 @@ class ReportesController extends Controller {
         } catch (Exception $e) {
             error_log("Advertencia MySQL: " . $e->getMessage());
         }
-
-        // Obtener datos y liberar modelo inmediatamente
-        $model = $this->model('RecepcionExterna');
-        $result = $model->getReporte([], 10000, 0);
-        $recepciones = $result['data'];
-        unset($model);
-        unset($result);
 
         error_log('Insertando ' . count($recepciones) . ' registros en Recepciones Ext.');
 

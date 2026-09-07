@@ -91,11 +91,35 @@ class KardexParihuelasController extends Controller
                     }
                 }
 
+                // ✅ CORRECCIÓN: Sincronizar movimientos (recepciones/despachos) con la BD viva.
+                // Un kardex guardado se "congela" al persistirse: los vales creados o modificados
+                // después del guardado no se reflejan en el detalle. Se recalcula el detalle vivo
+                // y, si difiere del guardado, se actualiza automáticamente (mismo patrón que el
+                // stock inicial). Si la consulta viva falla, se continúa mostrando el detalle
+                // guardado para no impedir la visualización del kardex.
+                $sincro = ['cambios' => false, 'detalle' => []];
+                try {
+                    $sincro = $model->sincronizarMovimientos($kardexExistente['Id'], $fecha, $turno);
+                } catch (Exception $e) {
+                    error_log("[KardexParihuelas] Error sincronizando movimientos del kardex {$kardexExistente['Id']}: " . $e->getMessage());
+                }
+
+                if (!empty($sincro['cambios'])) {
+                    // Recargar el kardex con el detalle actualizado
+                    $kardexRecargado = $model->getByFechaTurno($fecha, $turno);
+                    if ($kardexRecargado) {
+                        $kardexExistente = $kardexRecargado;
+                    }
+                    error_log("[KardexParihuelas] cargarDatos: movimientos sincronizados para kardex ID {$kardexExistente['Id']}: " . implode(' | ', $sincro['detalle']));
+                }
+
                 // Devolver datos (con si_* actualizados si hubo cambio)
                 echo json_encode([
                     'success' => true,
                     'existente' => true,
-                    'kardex' => $kardexExistente
+                    'kardex' => $kardexExistente,
+                    'movimientos_actualizados' => $sincro['cambios'],
+                    'detalle_cambios' => $sincro['detalle']
                 ]);
                 return;
             }

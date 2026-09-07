@@ -655,6 +655,27 @@ class AvanceDiario extends Model
         $horasGrilla = ['07:00','09:00','11:00','13:00','15:00','17:00','19:00',
                         '21:00','23:00','01:00','03:00','05:00','06:30'];
 
+        if ($tipo === 'acumulado') {
+            // Para el desglose de Stock Global: acumula los vales del día
+            // hasta la hora de la fila, de modo que el total coincida con la celda.
+            // INICIO CORTE (07:00): solo stock inicial, sin vales del día.
+            if ($horaAvance === '07:00') return [];
+            $hp = explode(':', $horaAvance);
+            $horaAvanceMin = intval($hp[0]) * 60 + intval($hp[1] ?? 0);
+            $resultado = [];
+            foreach ($rows as $row) {
+                $hp2 = explode(':', $row['Hora'] ?? '00:00:00');
+                $min = intval($hp2[0]) * 60 + intval($hp2[1] ?? 0);
+                if ($horaAvance === '06:30') {
+                    // FIN CORTE: todos los movimientos del día
+                    $resultado[] = $row;
+                } elseif ($min > 0 && $min <= $horaAvanceMin) {
+                    $resultado[] = $row;
+                }
+            }
+            return $resultado;
+        }
+
         if ($tipo === 'cierre') {
             // Buckets: Mañana→15:00, Tarde→23:00, Noche→06:30
             $rangos = [
@@ -729,7 +750,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de Repliegues (Recepciones Internas, NO COMPRAS GLORIA)
      */
-    public function getDetalleRepliegues($fecha, $hora = null)
+    public function getDetalleRepliegues($fecha, $hora = null, $tipoFiltro = 'cierre')
     {
         try {
             $sql = "SELECT ri.Hora,
@@ -748,7 +769,7 @@ class AvanceDiario extends Model
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'cierre');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleRepliegues: " . $e->getMessage());
             return [];
@@ -758,7 +779,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de Recepciones Externas (NO COMPRAS GLORIA)
      */
-    public function getDetalleRecepcionesExternas($fecha, $hora = null)
+    public function getDetalleRecepcionesExternas($fecha, $hora = null, $tipoFiltro = 'adelante')
     {
         try {
             // NORMALIZACIÓN DE SERIE: por carga masiva pueden existir guías cuyo prefijo
@@ -786,6 +807,11 @@ class AvanceDiario extends Model
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if ($hora === null) return $rows;
+
+            // Modo acumulado (desglose de Stock Global): vales hasta la hora de la fila
+            if ($tipoFiltro === 'acumulado') {
+                return $this->filtrarPorHoraGrilla($rows, $hora, 'acumulado');
+            }
 
             // Filtrar por hora con la misma lógica que acumularPorHoraAdelante
             $horasGrilla = ['07:00','09:00','11:00','13:00','15:00','17:00','19:00',
@@ -837,7 +863,7 @@ class AvanceDiario extends Model
      * Obtener detalle de Compras Usadas
      * (Actualmente siempre 0, pero se deja estructura preparada)
      */
-    public function getDetalleComprasUsadas($fecha, $hora = null)
+    public function getDetalleComprasUsadas($fecha, $hora = null, $tipoFiltro = 'adelante')
     {
         try {
             $sql = "(SELECT ri.Hora,
@@ -864,7 +890,7 @@ class AvanceDiario extends Model
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha, $fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'adelante');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleComprasUsadas: " . $e->getMessage());
             return [];
@@ -874,7 +900,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de Compras Nuevas (COMPRAS GLORIA, Recepciones Internas + Externas)
      */
-    public function getDetalleComprasNuevas($fecha, $hora = null)
+    public function getDetalleComprasNuevas($fecha, $hora = null, $tipoFiltro = 'adelante')
     {
         try {
             $sql = "(SELECT ri.Hora,
@@ -903,7 +929,7 @@ class AvanceDiario extends Model
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha, $fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'adelante');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleComprasNuevas: " . $e->getMessage());
             return [];
@@ -913,7 +939,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de EAN Usadas Despachos Internos (NO COMPRAS GLORIA)
      */
-    public function getDetalleEanUsadasDespInternos($fecha, $hora = null)
+    public function getDetalleEanUsadasDespInternos($fecha, $hora = null, $tipoFiltro = 'cierre')
     {
         try {
             $sql = "SELECT di.Hora,
@@ -927,12 +953,12 @@ class AvanceDiario extends Model
                     AND (dip.DescripcionProducto NOT LIKE '%COMPRAS GLORIA%' OR dip.DescripcionProducto IS NULL)
                     AND (dip.DescripcionProducto NOT LIKE '%NUEVAS ARCHIVO CENTRAL%' OR dip.DescripcionProducto IS NULL)
                     AND di.estado = 'activo'
-                    GROUP BY di.Hora, di.NVale, s.Subarea, dip.Cantidad, di.Id
+                    GROUP BY di.Hora, di.NVale, s.Subarea, dip.Cantidad, di.Id, dip.Id
                     ORDER BY di.Hora ASC, di.NVale ASC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'cierre');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleEanUsadasDespInternos: " . $e->getMessage());
             return [];
@@ -942,7 +968,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de EAN Usadas Despachos Externos (NO COMPRAS GLORIA)
      */
-    public function getDetalleEanUsadasDespExternos($fecha, $hora = null)
+    public function getDetalleEanUsadasDespExternos($fecha, $hora = null, $tipoFiltro = 'adelante')
     {
         try {
             $sql = "SELECT de.Hora,
@@ -956,7 +982,7 @@ class AvanceDiario extends Model
                     AND (dep.DescripcionProducto NOT LIKE '%COMPRAS GLORIA%' OR dep.DescripcionProducto IS NULL)
                     AND (dep.DescripcionProducto NOT LIKE '%NUEVAS ARCHIVO CENTRAL%' OR dep.DescripcionProducto IS NULL)
                     AND de.estado = 'activo'
-                    GROUP BY de.Hora, de.NVale, OrigenDestino, dep.Cantidad, de.Id
+                    GROUP BY de.Hora, de.NVale, OrigenDestino, dep.Cantidad, de.Id, dep.Id
                     ORDER BY de.Hora ASC, de.NVale ASC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha]);
@@ -967,7 +993,7 @@ class AvanceDiario extends Model
                 error_log("[DEBUG getDetalleEanUsadasDespExternos] primer_row=" . json_encode($rows[0]));
             }
 
-            $filtered = $this->filtrarPorHoraGrilla($rows, $hora, 'adelante');
+            $filtered = $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
             error_log("[DEBUG getDetalleEanUsadasDespExternos] after_filter=" . count($filtered));
             return $filtered;
         } catch (Exception $e) {
@@ -979,7 +1005,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de EAN Compras Usadas Despachos Internos (COMPRAS GLORIA)
      */
-    public function getDetalleEanComprasUsadasDespInternos($fecha, $hora = null)
+    public function getDetalleEanComprasUsadasDespInternos($fecha, $hora = null, $tipoFiltro = 'cierre')
     {
         try {
             $sql = "SELECT di.Hora,
@@ -992,12 +1018,12 @@ class AvanceDiario extends Model
                     WHERE di.Fecha = ? AND dip.CodigoProducto = '19003730'
                     AND dip.DescripcionProducto LIKE '%NUEVAS ARCHIVO CENTRAL%'
                     AND di.estado = 'activo'
-                    GROUP BY di.Hora, di.NVale, s.Subarea, dip.Cantidad, di.Id
+                    GROUP BY di.Hora, di.NVale, s.Subarea, dip.Cantidad, di.Id, dip.Id
                     ORDER BY di.Hora ASC, di.NVale ASC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'cierre');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleEanComprasUsadasDespInternos: " . $e->getMessage());
             return [];
@@ -1007,7 +1033,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de EAN Compras Usadas Despachos Externos (COMPRAS GLORIA)
      */
-    public function getDetalleEanComprasUsadasDespExternos($fecha, $hora = null)
+    public function getDetalleEanComprasUsadasDespExternos($fecha, $hora = null, $tipoFiltro = 'adelante')
     {
         try {
             $sql = "SELECT de.Hora,
@@ -1020,12 +1046,12 @@ class AvanceDiario extends Model
                     WHERE de.Fecha = ? AND dep.CodigoProducto = '19003730'
                     AND dep.DescripcionProducto LIKE '%NUEVAS ARCHIVO CENTRAL%'
                     AND de.estado = 'activo'
-                    GROUP BY de.Hora, de.NVale, OrigenDestino, dep.Cantidad, de.Id
+                    GROUP BY de.Hora, de.NVale, OrigenDestino, dep.Cantidad, de.Id, dep.Id
                     ORDER BY de.Hora ASC, de.NVale ASC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'adelante');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleEanComprasUsadasDespExternos: " . $e->getMessage());
             return [];
@@ -1035,7 +1061,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de EAN Compras Nuevas Despachos Internos (COMPRAS GLORIA)
      */
-    public function getDetalleEanComprasNuevasDespInternos($fecha, $hora = null)
+    public function getDetalleEanComprasNuevasDespInternos($fecha, $hora = null, $tipoFiltro = 'cierre')
     {
         try {
             $sql = "SELECT di.Hora,
@@ -1048,12 +1074,12 @@ class AvanceDiario extends Model
                     WHERE di.Fecha = ? AND dip.CodigoProducto = '19003730'
                     AND dip.DescripcionProducto LIKE '%COMPRAS GLORIA%'
                     AND di.estado = 'activo'
-                    GROUP BY di.Hora, di.NVale, s.Subarea, dip.Cantidad, di.Id
+                    GROUP BY di.Hora, di.NVale, s.Subarea, dip.Cantidad, di.Id, dip.Id
                     ORDER BY di.Hora ASC, di.NVale ASC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'cierre');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleEanComprasNuevasDespInternos: " . $e->getMessage());
             return [];
@@ -1063,7 +1089,7 @@ class AvanceDiario extends Model
     /**
      * Obtener detalle de EAN Compras Nuevas Despachos Externos (COMPRAS GLORIA)
      */
-    public function getDetalleEanComprasNuevasDespExternos($fecha, $hora = null)
+    public function getDetalleEanComprasNuevasDespExternos($fecha, $hora = null, $tipoFiltro = 'adelante')
     {
         try {
             $sql = "SELECT de.Hora,
@@ -1076,12 +1102,12 @@ class AvanceDiario extends Model
                     WHERE de.Fecha = ? AND dep.CodigoProducto = '19003730'
                     AND dep.DescripcionProducto LIKE '%COMPRAS GLORIA%'
                     AND de.estado = 'activo'
-                    GROUP BY de.Hora, de.NVale, OrigenDestino, dep.Cantidad, de.Id
+                    GROUP BY de.Hora, de.NVale, OrigenDestino, dep.Cantidad, de.Id, dep.Id
                     ORDER BY de.Hora ASC, de.NVale ASC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$fecha]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $this->filtrarPorHoraGrilla($rows, $hora, 'adelante');
+            return $this->filtrarPorHoraGrilla($rows, $hora, $tipoFiltro);
         } catch (Exception $e) {
             error_log("Error getDetalleEanComprasNuevasDespExternos: " . $e->getMessage());
             return [];
@@ -1094,26 +1120,74 @@ class AvanceDiario extends Model
     // ================================================================
 
     /**
+     * Calcula el stock inicial (arrastre del día anterior) para el detalle
+     * de Stock Global. Replica la lógica de asignación de listar() para la
+     * fila 07:00 (INICIO CORTE).
+     *
+     * @param string $fecha Fecha actual (YYYY-MM-DD)
+     * @param string $tipo 'CN' | 'CU' | 'FR'
+     * @return float
+     */
+    private function getStockInicialDetalle($fecha, $tipo)
+    {
+        $fechaCorte = '2026-07-12';
+        $stockCorteCN = 10240;
+        $stockCorteFR = 3829;
+
+        if ($tipo === 'CU') {
+            return $this->getStockComprasUsadasAcumulado($fecha);
+        }
+
+        $fechaAnterior = date('Y-m-d', strtotime($fecha . ' -1 day'));
+        $regAnterior = $this->getUltimoRegistro($fechaAnterior);
+
+        if ($tipo === 'CN') {
+            $stockCN = floatval($regAnterior['StockComprasNuevas'] ?? 0);
+            if ($stockCN > 0) return $stockCN;
+            return ($fecha >= $fechaCorte) ? $stockCorteCN : 0;
+        }
+
+        // FR
+        $stockFR = floatval($regAnterior['StockFlujoRegular'] ?? 0);
+        if ($stockFR > 0) return $stockFR;
+        return ($fecha >= $fechaCorte) ? $stockCorteFR : 0;
+    }
+
+    /**
      * Obtener detalle de Stock C. Nuevas.
      * ENTRADA: Recepciones (internas + externas) COMPRAS GLORIA
      * SALIDA : Despachos (internos + externos) COMPRAS GLORIA
+     * Incluye una fila de STOCK INICIAL (arrastre del día anterior).
      */
     public function getDetalleStockComprasNuevas($fecha, $hora = null)
     {
         try {
-            $entradas = $this->getDetalleComprasNuevas($fecha, $hora);
+            // STOCK INICIAL (arrastre del día anterior) para reconstruir el saldo
+            $stockInicial = $this->getStockInicialDetalle($fecha, 'CN');
+            $filaInicial = [];
+            if ($stockInicial > 0) {
+                $filaInicial[] = [
+                    'Hora' => '00:00',
+                    'NValeFormateado' => 'STOCK INICIAL',
+                    'OrigenDestino' => 'Día anterior',
+                    'Cantidad' => $stockInicial,
+                    'Tipo' => 'ENTRADA'
+                ];
+            }
+
+            $entradas = $this->getDetalleComprasNuevas($fecha, $hora, 'acumulado');
             foreach ($entradas as &$e) { $e['Tipo'] = 'ENTRADA'; }
             unset($e);
 
-            $salidasDI = $this->getDetalleEanComprasNuevasDespInternos($fecha, $hora);
+            $salidasDI = $this->getDetalleEanComprasNuevasDespInternos($fecha, $hora, 'acumulado');
             foreach ($salidasDI as &$s) { $s['Tipo'] = 'SALIDA'; }
             unset($s);
 
-            $salidasDE = $this->getDetalleEanComprasNuevasDespExternos($fecha, $hora);
+            $salidasDE = $this->getDetalleEanComprasNuevasDespExternos($fecha, $hora, 'acumulado');
             foreach ($salidasDE as &$s) { $s['Tipo'] = 'SALIDA'; }
             unset($s);
 
-            return array_merge($entradas, $salidasDI, $salidasDE);
+            return array_merge($filaInicial, $entradas, $salidasDI, $salidasDE);
         } catch (Exception $e) {
             error_log("Error getDetalleStockComprasNuevas: " . $e->getMessage());
             return [];
@@ -1128,19 +1202,32 @@ class AvanceDiario extends Model
     public function getDetalleStockComprasUsadas($fecha, $hora = null)
     {
         try {
-            $entradas = $this->getDetalleComprasUsadas($fecha, $hora);
+            // STOCK INICIAL (arrastre del día anterior) para reconstruir el saldo
+            $stockInicial = $this->getStockInicialDetalle($fecha, 'CU');
+            $filaInicial = [];
+            if ($stockInicial > 0) {
+                $filaInicial[] = [
+                    'Hora' => '00:00',
+                    'NValeFormateado' => 'STOCK INICIAL',
+                    'OrigenDestino' => 'Día anterior',
+                    'Cantidad' => $stockInicial,
+                    'Tipo' => 'ENTRADA'
+                ];
+            }
+
+            $entradas = $this->getDetalleComprasUsadas($fecha, $hora, 'acumulado');
             foreach ($entradas as &$e) { $e['Tipo'] = 'ENTRADA'; }
             unset($e);
 
-            $salidasDI = $this->getDetalleEanComprasUsadasDespInternos($fecha, $hora);
+            $salidasDI = $this->getDetalleEanComprasUsadasDespInternos($fecha, $hora, 'acumulado');
             foreach ($salidasDI as &$s) { $s['Tipo'] = 'SALIDA'; }
             unset($s);
 
-            $salidasDE = $this->getDetalleEanComprasUsadasDespExternos($fecha, $hora);
+            $salidasDE = $this->getDetalleEanComprasUsadasDespExternos($fecha, $hora, 'acumulado');
             foreach ($salidasDE as &$s) { $s['Tipo'] = 'SALIDA'; }
             unset($s);
 
-            return array_merge($entradas, $salidasDI, $salidasDE);
+            return array_merge($filaInicial, $entradas, $salidasDI, $salidasDE);
         } catch (Exception $e) {
             error_log("Error getDetalleStockComprasUsadas: " . $e->getMessage());
             return [];
@@ -1155,23 +1242,40 @@ class AvanceDiario extends Model
     public function getDetalleStockFlujoRegular($fecha, $hora = null)
     {
         try {
-            $entradasRepliegues = $this->getDetalleRepliegues($fecha, $hora);
+            // STOCK INICIAL (arrastre del día anterior) para reconstruir el saldo
+            $stockInicial = $this->getStockInicialDetalle($fecha, 'FR');
+            $filaInicial = [];
+            if ($stockInicial > 0) {
+                $filaInicial[] = [
+                    'Hora' => '00:00',
+                    'NValeFormateado' => 'STOCK INICIAL',
+                    'OrigenDestino' => 'Día anterior',
+                    'Cantidad' => $stockInicial,
+                    'Tipo' => 'ENTRADA'
+                ];
+            }
+
+            $entradasRepliegues = $this->getDetalleRepliegues($fecha, $hora, 'acumulado');
             foreach ($entradasRepliegues as &$e) { $e['Tipo'] = 'ENTRADA'; }
             unset($e);
 
-            $entradasRecExt = $this->getDetalleRecepcionesExternas($fecha, $hora);
-            foreach ($entradasRecExt as &$e) { $e['Tipo'] = 'ENTRADA'; }
+            $entradasRecExt = $this->getDetalleRecepcionesExternas($fecha, $hora, 'acumulado');
+            foreach ($entradasRecExt as &$e) {
+                $e['Tipo'] = 'ENTRADA';
+                // Las recepciones externas afectan el stock por su 'Total' (igual que la grilla)
+                if (isset($e['Total'])) { $e['Cantidad'] = floatval($e['Total']); }
+            }
             unset($e);
 
-            $salidasDI = $this->getDetalleEanUsadasDespInternos($fecha, $hora);
+            $salidasDI = $this->getDetalleEanUsadasDespInternos($fecha, $hora, 'acumulado');
             foreach ($salidasDI as &$s) { $s['Tipo'] = 'SALIDA'; }
             unset($s);
 
-            $salidasDE = $this->getDetalleEanUsadasDespExternos($fecha, $hora);
+            $salidasDE = $this->getDetalleEanUsadasDespExternos($fecha, $hora, 'acumulado');
             foreach ($salidasDE as &$s) { $s['Tipo'] = 'SALIDA'; }
             unset($s);
 
-            return array_merge($entradasRepliegues, $entradasRecExt, $salidasDI, $salidasDE);
+            return array_merge($filaInicial, $entradasRepliegues, $entradasRecExt, $salidasDI, $salidasDE);
         } catch (Exception $e) {
             error_log("Error getDetalleStockFlujoRegular: " . $e->getMessage());
             return [];

@@ -1,4 +1,4 @@
-﻿<!-- Contenedor global para mensajes -->
+<!-- Contenedor global para mensajes -->
 <div id="mensajes-container"></div>
 <div class="container-fluid py-3" style="max-width:100%; width:100%; padding-left:12px; padding-right:12px; margin:auto;">
     <div class="card shadow-sm border-0 mb-4 reporte-card">

@@ -688,7 +688,7 @@
 <script src="<?= BASE_URL ?>/js/autocorrector.js?v=<?= time() ?>"></script>
 <script src="<?= BASE_URL ?>/js/diccionario_espanol_basico.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>/js/fecha-efectiva-nocturno.js?v=<?= time() ?>"></script>
-    <script src="<?= BASE_URL ?>/js/despachosinternos.js?v=8"></script>
+    <script src="<?= BASE_URL ?>/js/despachosinternos.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>/js/despachosinternos_edicion.js?v=<?= time() ?>"></script>
     <script src="<?= BASE_URL ?>/js/auditoria_historial.js?v=<?= time() ?>"></script>
 <script>

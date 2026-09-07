@@ -294,7 +294,12 @@
 
                     <div class="col-md-4">
                         <label for="ruc" class="form-label">RUC</label>
-                        <input type="text" class="form-control" id="ruc" name="ruc" maxlength="20" required>
+                        <select class="form-select" id="ruc" name="ruc" required>
+                            <option value="">Seleccione</option>
+                            <?php if (!empty($destinos)) foreach ($destinos as $d): ?>
+                                <option value="<?= htmlspecialchars($d['RUC'] ?? '') ?>" data-destino="<?= htmlspecialchars($d['Id'] ?? '') ?>" data-direccion="<?= htmlspecialchars($d['Direccion'] ?? '') ?>"><?= htmlspecialchars($d['RUC'] ?? '') ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="col-md-4">
@@ -322,7 +327,12 @@
 
                     <div class="col-md-2">
                         <label for="brevete" class="form-label">Brevete</label>
-                        <input type="text" class="form-control" id="brevete" name="brevete" maxlength="20">
+                        <select class="form-select" id="brevete" name="brevete">
+                            <option value="">Seleccione</option>
+                            <?php if (!empty($choferes)) foreach ($choferes as $c): ?>
+                                <option value="<?= htmlspecialchars($c['Brevete'] ?? '') ?>" data-chofer="<?= htmlspecialchars($c['Id'] ?? '') ?>" data-chofer-nombre="<?= htmlspecialchars($c['ApellidosNombres'] ?? '') ?>"><?= htmlspecialchars($c['Brevete'] ?? '') ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="col-md-4">
@@ -337,7 +347,12 @@
 
                     <div class="col-md-3">
                         <label for="ruc_transportista" class="form-label">RUC Transportista</label>
-                        <input type="text" class="form-control" id="ruc_transportista" name="ruc_transportista" maxlength="20">
+                        <select class="form-select" id="ruc_transportista" name="ruc_transportista">
+                            <option value="">Seleccione</option>
+                            <?php if (!empty($transportistas)) foreach ($transportistas as $t): ?>
+                                <option value="<?= htmlspecialchars($t['RUC'] ?? '') ?>" data-transportista="<?= htmlspecialchars($t['Id'] ?? '') ?>" data-empresa="<?= htmlspecialchars($t['Empresa'] ?? '') ?>"><?= htmlspecialchars($t['RUC'] ?? '') ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
 
@@ -356,7 +371,14 @@
 
                     <div class="col-md-2">
                         <label for="constancia_inscripcion" class="form-label">Constancia Tracto</label>
-                        <input type="text" class="form-control" id="constancia_inscripcion" name="Constancia_Inscripcion" maxlength="20">
+                        <select class="form-select" id="constancia_inscripcion" name="Constancia_Inscripcion">
+                            <option value="">Seleccione</option>
+                            <?php if (!empty($placas)) foreach ($placas as $pl): ?>
+                                <?php if (isset($pl['TipoPlaca']) && strtoupper($pl['TipoPlaca']) === 'TRACTO'): ?>
+                                    <option value="<?= htmlspecialchars($pl['ConstanciaInscripcion'] ?? '') ?>" data-placa="<?= htmlspecialchars($pl['Placa'] ?? '') ?>"><?= htmlspecialchars($pl['ConstanciaInscripcion'] ?? '') ?></option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="col-md-2">
@@ -373,7 +395,14 @@
 
                     <div class="col-md-2">
                         <label for="constancia_inscripcion_2" class="form-label">Constancia Carreta</label>
-                        <input type="text" class="form-control" id="constancia_inscripcion_2" name="Constancia_Inscripcion_2" maxlength="20">
+                        <select class="form-select" id="constancia_inscripcion_2" name="Constancia_Inscripcion_2">
+                            <option value="">Seleccione</option>
+                            <?php if (!empty($placas)) foreach ($placas as $pl): ?>
+                                <?php if (isset($pl['TipoPlaca']) && strtoupper($pl['TipoPlaca']) === 'CARRETA'): ?>
+                                    <option value="<?= htmlspecialchars($pl['ConstanciaInscripcion'] ?? '') ?>" data-placa="<?= htmlspecialchars($pl['Placa'] ?? '') ?>"><?= htmlspecialchars($pl['ConstanciaInscripcion'] ?? '') ?></option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="col-md-4">

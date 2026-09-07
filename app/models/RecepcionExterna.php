@@ -258,6 +258,15 @@ class RecepcionExterna extends Model {
                 $sql .= " AND re.Fecha = ?";
                 $params[] = $filtros['Fecha'];
             }
+            // Filtrado por rango de fechas (desde / hasta)
+            if (!empty($filtros['fechaDesde'])) {
+                $sql .= " AND re.Fecha >= ?";
+                $params[] = $filtros['fechaDesde'];
+            }
+            if (!empty($filtros['fechaHasta'])) {
+                $sql .= " AND re.Fecha <= ?";
+                $params[] = $filtros['fechaHasta'];
+            }
             if (!empty($filtros['Hora'])) {
                 $sql .= " AND re.Hora LIKE ?";
                 $params[] = "%{$filtros['Hora']}%";
