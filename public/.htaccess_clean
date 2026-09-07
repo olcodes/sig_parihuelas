@@ -1,0 +1,15 @@
+# LAVORO ERP - CONFIGURACIÓN APACHE 2.4+
+# Limpia y compatible
+
+RewriteEngine On
+RewriteBase /swlavoro/public/
+
+# Redirigir a index.php si no es archivo o directorio
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d  
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+
+# Proteger archivos sensibles (sintaxis Apache 2.4+)
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh)$">
+    Require all denied
+</FilesMatch>

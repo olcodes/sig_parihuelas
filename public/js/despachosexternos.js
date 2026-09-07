@@ -96,6 +96,18 @@
         window.choicesInstances = window.choicesInstances || {};
         document.querySelectorAll('.custom-dropdown').forEach(function(select){
             try{
+                // FIX (doble inicialización de Choices.js): si la vista de edición
+                // (despachosexternos_edicion.js) ya creó la instancia de este select
+                // (fallback en initChoices) o el select ya está envuelto con .choices,
+                // NO volver a inicializar. Recrear sobre un elemento ya inicializado
+                // deja instancias corruptas (sin isDisabled) que rompen enable()/disable()
+                // y hacen que el dropdown del turno no despliegue al marcar "Manual".
+                if (window.choicesInstances && window.choicesInstances[select.id]) {
+                    return; // ya hay instancia válida, reutilizarla
+                }
+                if (select.closest && select.closest('.choices')) {
+                    return; // select ya envuelto por Choices, no recrear
+                }
                 window.choicesInstances[select.id] = new Choices(select, {
                     searchEnabled: true,
                     searchChoices: true,
@@ -973,6 +985,7 @@
                 var habilitar = ['fecha','destino','ruc','chofer','brevete','transportista','ruc_transportista','placa_tracto','placa_carreta','constancia_inscripcion','constancia_inscripcion_2','guiaRemision','producto','cantidad','comentarios','unidadMedida','btnAgregar','btnQuitar','btnLimpiar','btnGuardar','btnImprimir'];
                 habilitar.forEach(function(id){ var el = document.getElementById(id); if(el) el.removeAttribute('disabled');
                     if(window.choicesInstances && window.choicesInstances[id]){ try{ window.choicesInstances[id].enable(); }catch(e){} }
+                    try{ limpiarChoicesVisuales(id); }catch(e){}
                 });
 
                 // IDs que deben permanecer deshabilitados
@@ -1032,13 +1045,51 @@
             });
         }
         
+        // Limpiar estilos inline !important de deshabilitado en el contenedor Choices de un select.
+        // Necesario porque bloquearControles (vista edición) aplica pointer-events:none !important
+        // al contenedor, y .enable() de Choices no elimina estilos inline.
+        function limpiarChoicesVisuales(id){
+            var el = document.getElementById(id);
+            if(!el) return;
+            var choicesEl = el.nextElementSibling;
+            if(!choicesEl || !choicesEl.classList || !choicesEl.classList.contains('choices')){
+                try{ choicesEl = document.querySelector('#' + id + ' + .choices'); }catch(e){}
+            }
+            if(!choicesEl || !choicesEl.classList || !choicesEl.classList.contains('choices')){
+                choicesEl = Array.prototype.slice.call(document.querySelectorAll('.choices')).find(function(c){ return c.contains(el); });
+            }
+            if(!choicesEl) return;
+            choicesEl.classList.remove('is-disabled');
+            choicesEl.removeAttribute('aria-disabled');
+            var inner = choicesEl.querySelector('.choices__inner');
+            if(inner){
+                inner.removeAttribute('aria-disabled');
+                ['background-color','color','cursor','pointer-events','box-shadow','padding','min-height','max-height','height','border','border-radius','opacity'].forEach(function(p){ try{ inner.style.removeProperty(p); }catch(e){} });
+            }
+            ['background-color','border','border-radius','box-shadow','opacity','pointer-events'].forEach(function(p){ try{ choicesEl.style.removeProperty(p); }catch(e){} });
+            Array.prototype.slice.call(choicesEl.querySelectorAll('input,button')).forEach(function(i){
+                try{ i.removeAttribute('disabled'); i.disabled = false; }catch(e){}
+                try{ i.style.removeProperty('pointer-events'); }catch(e){}
+            });
+        }
+
         // Función auxiliar para habilitar controles (extraída del listener original)
         function habilitarControlesParaModificar(){
             // Habilitar los mismos campos que hace el botón Nuevo
             var habilitar = ['fecha','destino','ruc','chofer','brevete','transportista','ruc_transportista','placa_tracto','placa_carreta','constancia_inscripcion','constancia_inscripcion_2','guiaRemision','producto','cantidad','comentarios','unidadMedida','btnAgregar','btnQuitar','btnLimpiar','btnGuardar','btnImprimir'];
             habilitar.forEach(function(id){ var el = document.getElementById(id); if(el) el.removeAttribute('disabled');
                 if(window.choicesInstances && window.choicesInstances[id]){ try{ window.choicesInstances[id].enable(); }catch(e){} }
+                try{ limpiarChoicesVisuales(id); }catch(e){}
             });
+            // Recrear instancias Choices de los selects principales para garantizar que queden
+            // habilitados e interactuables (función expuesta por despachosexternos_edicion.js).
+            try {
+                ['destino','chofer','transportista','placa_tracto','placa_carreta'].forEach(function(id){
+                    if (typeof window.recrearChoicesSelectEdit === 'function') {
+                        try { window.recrearChoicesSelectEdit(id); } catch(e){}
+                    }
+                });
+            } catch(e){}
 
             // Mantener deshabilitados los que indica la UI (turno, despachador, direccion, codigo)
             var permanecerDeshabilitados = ['turno','despachador','direccion','codigo'];

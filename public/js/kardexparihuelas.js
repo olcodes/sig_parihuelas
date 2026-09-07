@@ -189,6 +189,13 @@
                     state.kardexId = data.kardex.Id;
                     state.datosCargados = true;
                     habilitarBotones(true, false, true, false);
+
+                    // Aviso si se detectaron y actualizaron vales nuevos/modificados
+                    // después del guardado del kardex (sincronización automática).
+                    if (data.movimientos_actualizados) {
+                        console.log('[KardexParihuelas] Movimientos sincronizados:', data.detalle_cambios);
+                        mostrarExito('Se detectaron vales nuevos o modificados después del guardado del kardex y los movimientos fueron actualizados automáticamente.');
+                    }
                 } else {
                     console.log('[KardexParihuelas] Kardex NUEVO, stockInicial:', JSON.stringify(data.stockInicial));
                     // Nuevo kardex
@@ -611,7 +618,7 @@
         var sf_asperjadas = Math.max(0, si_aspe + aspTurno - despAsp);
         var sf_aptas = Math.max(0, si_aptas + totalRecAptas + clasifAptas + reparadasAptas + clasificadasAptas + reseleccion - aspTurno + observ);
         var sf_danadas = Math.max(0, si_danadas + totalRecDanadas + clasifDanadas - reparadasTotal + clasificadasDanadas - reseleccion - totalDesEspeciales);
-        var sf_sucias = Math.max(0, si_sucias + totalRecSucias + reparadasSucias + clasificadasSucias - totalLavadas - clasifAptas);
+        var sf_sucias = Math.max(0, si_sucias + totalRecSucias + reparadasSucias + clasificadasSucias - totalLavadas - clasifAptas - clasifDanadas);
         var sf_por_sel = Math.max(0, si_por_sel + totalRecPorSel - clasificadasTotal);
         // sf_lavadas_secadas es manual, se toma directo del input
         var sf_lavadas_sec = parseInt(getVal('sf_lavadas_secadas')) || 0;

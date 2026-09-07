@@ -1330,6 +1330,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (btnAgregar) btnAgregar.addEventListener('click', function() {
+        console.log('[DIAG-Nuevo] click btnAgregar (listener NUEVO) | _esPaginaEdicion=', window._esPaginaEdicion, '| editIndex=', editIndex, 'updatePhase=', updatePhase);
+        // FIX: En la página de edición (despachosinternos/edicion), este listener es el del
+        // script de "Nuevo Registro". El listener de despachosinternos_edicion.js es quien debe
+        // manejar el botón; si este listener se ejecutara también, interferiría con la carga de
+        // la fila seleccionada y el select de producto mostraría otro producto.
+        if (window._esPaginaEdicion) {
+            return;
+        }
         // Si una fila fue seleccionada pero no cargada en controles, al pulsar "Actualizar"
         // debemos primero poblar los controles y pasar a fase 'editing'.
         if (editIndex !== null && updatePhase === 'selected') {
@@ -1390,6 +1398,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // El botón Editar ha sido eliminado, ahora se usa el botón Agregar/Actualizar para ambas funciones
 
     if (btnQuitar) btnQuitar.addEventListener('click', function() {
+        // FIX: No interferir en la página de edición (manejada por despachosinternos_edicion.js)
+        if (window._esPaginaEdicion) {
+            return;
+        }
         if (editIndex === null) {
             mostrarMensajeError('Seleccione una fila para quitar.');
             return;
@@ -1402,6 +1414,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     if (btnLimpiar) btnLimpiar.addEventListener('click', function() {
+        // FIX: No interferir en la página de edición (manejada por despachosinternos_edicion.js)
+        if (window._esPaginaEdicion) {
+            return;
+        }
         // Limpiar únicamente los campos relacionados al producto (producto, codigo, cantidad, comentarios)
         // y restaurar el combo de productos. Esto asegura que el botón 'Agregar' vuelva a su estado.
         try { if (typeof limpiarCamposProducto === 'function') limpiarCamposProducto(); } catch(e){}

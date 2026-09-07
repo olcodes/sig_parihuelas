@@ -14,6 +14,9 @@
     let _valeUnicoId = null; // ID del vale si la última búsqueda arrojó exactamente 1 resultado
     // Flag para prevenir doble clic en guardado (declarado aquí para que todas las funciones puedan acceder)
     let _guardandoDespExtEditEnProceso = false;
+    // Flag para evitar que forceDisableAll (reintentos por setTimeout) re-bloquee los controles
+    // una vez que el usuario ya habilitó la edición con el botón "Modificar".
+    let _edicionHabilitada = false;
 
     // Notificación flotante (overlay) reutilizable — fallback local para este script
     function showFloatingMessage(message, level) {
@@ -165,17 +168,36 @@
                 try {
                     choicesInstances[id] = new Choices(elemento, {
                         searchEnabled: true,
+                        searchChoices: true,
+                        shouldSort: false,
+                        itemSelectText: '',
+                        allowHTML: false,
+                        searchResultLimit: 100,
+                        position: 'auto',
                         placeholder: true,
                         placeholderValue: 'Seleccione...',
                         noResultsText: 'No se encontraron resultados',
-                        itemSelectText: '',
-                        searchPlaceholderValue: 'Buscar...',
-                        shouldSort: false
+                        removeItemButton: false,
+                        duplicateItemsAllowed: false
+                    });
+                    // FIX (doble inicialización de Choices.js): guardar también en
+                    // window.choicesInstances para que despachosexternos.js detecte que
+                    // este select ya está inicializado y NO lo recree (evita instancias
+                    // corruptas sin isDisabled que rompen enable()/disable() y el dropdown).
+                    window.choicesInstances = window.choicesInstances || {};
+                    window.choicesInstances[id] = choicesInstances[id];
+                    // Replicar el listener showDropdown del script principal (muestra el
+                    // input de búsqueda y le da foco), ya que ahora esta instancia es la definitiva.
+                    elemento.addEventListener('showDropdown', function(){
+                        setTimeout(function(){
+                            var input = elemento.parentElement.querySelector('.choices__input');
+                            if(input){ input.style.display = 'block'; input.placeholder = 'Buscar...'; input.focus(); }
+                        },100);
                     });
                     // Agregar listener de change para wrapping automático
                     elemento.addEventListener('change', function(){
                         setTimeout(function(){
-                            if(typeof window.updateAllChoicesWrap === 'function'){ 
+                            if(typeof window.updateAllChoicesWrap === 'function'){
                                 window.updateAllChoicesWrap();
                             }
                         }, 100);
@@ -264,6 +286,41 @@
         } catch (e) { /* ignore */ }
     }
 
+    // Fuerza la apertura visual del dropdown de turno manipulando el DOM directamente.
+    // No depende de que la instancia Choices responda al clic (robusto ante estados rotos
+    // o listeners que no se ejecutan). Solo actúa si el select está habilitado (Manual activo).
+    function forzarAperturaTurnoManual() {
+        try {
+            const sel = document.getElementById('turno');
+            if (!sel) return;
+            if (sel.disabled) return;
+            let choicesEl = sel.nextElementSibling;
+            if (!choicesEl || !choicesEl.classList || !choicesEl.classList.contains('choices')) {
+                choicesEl = Array.from(document.querySelectorAll('.choices')).find(c => c.contains(sel));
+            }
+            if (!choicesEl) return;
+            choicesEl.classList.add('is-open');
+            const dd = choicesEl.querySelector('.choices__list--dropdown');
+            if (dd) {
+                dd.classList.add('is-active');
+                dd.setAttribute('aria-expanded', 'true');
+                try { dd.style.setProperty('display', 'block'); } catch(e){}
+                try { dd.style.setProperty('visibility', 'visible'); } catch(e){}
+                try { dd.style.setProperty('opacity', '1'); } catch(e){}
+                // Limpiar estilos residuales de "deshabilitado" dentro del dropdown
+                try { dd.style.removeProperty('color'); } catch(e){}
+                try { dd.style.removeProperty('cursor'); } catch(e){}
+                Array.from(dd.querySelectorAll('input,button')).forEach(function(i){
+                    try { i.removeAttribute('disabled'); i.disabled = false; } catch(e){}
+                    try { i.style.removeProperty('pointer-events'); } catch(e){}
+                    try { i.style.removeProperty('color'); } catch(e){}
+                    try { i.style.removeProperty('cursor'); } catch(e){}
+                    try { i.style.removeProperty('background'); } catch(e){}
+                });
+            }
+        } catch(e) { /* ignore */ }
+    }
+
     // Adjunta un listener que fuerza la apertura del dropdown de turno cuando el usuario hace click
     function attachTurnoClickToShow() {
         try {
@@ -276,18 +333,34 @@
             if (!choicesEl) return;
             if (choicesEl.dataset.turnoClickAttached === '1') return;
             const ci = choicesInstances['turno'] || (window.choicesInstances && window.choicesInstances['turno']);
-            choicesEl.addEventListener('click', function(evt) {
+            choicesEl.addEventListener('click', function() {
                 try {
                     if (sel.disabled) return;
-                    if (ci && typeof ci.showDropdown === 'function') {
-                        ci.showDropdown();
-                        const chInput = choicesEl.querySelector('.choices__input');
-                        if (chInput) chInput.focus();
-                    } else {
-                        sel.focus();
-                    }
+                    forzarAperturaTurnoManual();
+                    // Solo forzar vía instancia si el dropdown sigue cerrado (no romper el toggle)
+                    try {
+                        if (!choicesEl.classList.contains('is-open') && ci && typeof ci.showDropdown === 'function') ci.showDropdown();
+                    } catch (e) {}
                 } catch (e) { /* ignore */ }
             });
+            // FIX (dropdown de turno no desplegaba en modo Manual): interceptar el clic en el
+            // .choices__inner en fase de CAPTURA con stopImmediatePropagation(), para impedir que
+            // el handler nativo de Choices haga toggle y cierre el dropdown que forzamos a abrir.
+            // El clic real cae sobre el inner; bloquearlo aquí garantiza que el dropdown quede abierto.
+            const inner = choicesEl.querySelector('.choices__inner');
+            if (inner && !inner.dataset.turnoInnerCapture) {
+                inner.addEventListener('click', function(evt) {
+                    try {
+                        if (sel.disabled) return;
+                        evt.stopImmediatePropagation();
+                        evt.preventDefault();
+                        forzarAperturaTurnoManual();
+                        const ciActual = (window.choicesInstances && window.choicesInstances['turno']) || null;
+                        if (ciActual && typeof ciActual.showDropdown === 'function') { try { ciActual.showDropdown(); } catch(e){} }
+                    } catch (e) { /* ignore */ }
+                }, true);
+                inner.dataset.turnoInnerCapture = '1';
+            }
             choicesEl.dataset.turnoClickAttached = '1';
         } catch(e) { /* ignore */ }
     }
@@ -420,85 +493,311 @@
     }
 
     // Configurar campos sincronizados (Destino-RUC-Dirección, Chofer-Brevete, Transportista-RUC, Placas-Constancias)
+    // Sincronización BIDIRECCIONAL: cambiar el padre autocompleta al hijo y viceversa.
     function setupCamposSincronizados() {
-        // Destino -> RUC y Dirección
+        // Destino <-> RUC (+ Dirección)
         const destinoSelect = document.getElementById('destino');
-        const rucInput = document.getElementById('ruc');
         const direccionInput = document.getElementById('direccion');
+        const rucSelect = document.getElementById('ruc');
         
         if (destinoSelect) {
             destinoSelect.addEventListener('change', function() {
                 const opcion = this.options[this.selectedIndex];
                 if (opcion && opcion.value) {
-                    if (rucInput) rucInput.value = opcion.getAttribute('data-ruc') || '';
+                    setSelectValueEdit('ruc', opcion.getAttribute('data-ruc') || '');
                     if (direccionInput) direccionInput.value = opcion.getAttribute('data-direccion') || '';
                 } else {
-                    if (rucInput) rucInput.value = '';
+                    setSelectValueEdit('ruc', '');
+                    if (direccionInput) direccionInput.value = '';
+                }
+            });
+        }
+        if (rucSelect) {
+            rucSelect.addEventListener('change', function() {
+                const opcion = this.options[this.selectedIndex];
+                const rucVal = (opcion && opcion.value) ? opcion.value : '';
+                const destinos = window.destinosData || [];
+                const found = destinos.find(function(d){ return String(d.RUC || d.ruc || '') === String(rucVal); });
+                if (found) {
+                    setSelectValueEdit('destino', found.Id || found.id || '');
+                    if (direccionInput) direccionInput.value = found.Direccion || found.direccion || '';
+                } else if (!rucVal) {
+                    setSelectValueEdit('destino', '');
                     if (direccionInput) direccionInput.value = '';
                 }
             });
         }
         
-        // Chofer -> Brevete
+        // Chofer <-> Brevete
         const choferSelect = document.getElementById('chofer');
-        const breveteInput = document.getElementById('brevete');
+        const breveteSelect = document.getElementById('brevete');
         
         if (choferSelect) {
             choferSelect.addEventListener('change', function() {
                 const opcion = this.options[this.selectedIndex];
                 if (opcion && opcion.value) {
-                    if (breveteInput) breveteInput.value = opcion.getAttribute('data-brevete') || '';
+                    setSelectValueEdit('brevete', opcion.getAttribute('data-brevete') || '');
                 } else {
-                    if (breveteInput) breveteInput.value = '';
+                    setSelectValueEdit('brevete', '');
+                }
+            });
+        }
+        if (breveteSelect) {
+            breveteSelect.addEventListener('change', function() {
+                const opcion = this.options[this.selectedIndex];
+                const bVal = (opcion && opcion.value) ? opcion.value : '';
+                const choferes = window.choferesData || [];
+                const found = choferes.find(function(c){ return String(c.Brevete || c.brevete || '') === String(bVal); });
+                if (found) {
+                    setSelectValueEdit('chofer', found.Id || found.id || '');
+                } else if (!bVal) {
+                    setSelectValueEdit('chofer', '');
                 }
             });
         }
         
-        // Transportista -> RUC Transportista
+        // Transportista <-> RUC Transportista
         const transportistaSelect = document.getElementById('transportista');
-        const rucTransportistaInput = document.getElementById('ruc_transportista');
+        const rucTransportistaSelect = document.getElementById('ruc_transportista');
         
         if (transportistaSelect) {
             transportistaSelect.addEventListener('change', function() {
                 const opcion = this.options[this.selectedIndex];
                 if (opcion && opcion.value) {
-                    if (rucTransportistaInput) rucTransportistaInput.value = opcion.getAttribute('data-ruc') || '';
+                    setSelectValueEdit('ruc_transportista', opcion.getAttribute('data-ruc') || '');
                 } else {
-                    if (rucTransportistaInput) rucTransportistaInput.value = '';
+                    setSelectValueEdit('ruc_transportista', '');
+                }
+            });
+        }
+        if (rucTransportistaSelect) {
+            rucTransportistaSelect.addEventListener('change', function() {
+                const opcion = this.options[this.selectedIndex];
+                const rVal = (opcion && opcion.value) ? opcion.value : '';
+                const transportistas = window.transportistasData || [];
+                const found = transportistas.find(function(t){ return String(t.RUC || t.ruc || '') === String(rVal); });
+                if (found) {
+                    setSelectValueEdit('transportista', found.Id || found.id || '');
+                } else if (!rVal) {
+                    setSelectValueEdit('transportista', '');
                 }
             });
         }
         
-        // Placa Tracto -> Constancia Tracto
+        // Placa Tracto <-> Constancia Tracto
         const placaTractoSelect = document.getElementById('placa_tracto');
-        const constanciaTractoInput = document.getElementById('constancia_inscripcion');
+        const constanciaTractoSelect = document.getElementById('constancia_inscripcion');
         
         if (placaTractoSelect) {
             placaTractoSelect.addEventListener('change', function() {
                 const opcion = this.options[this.selectedIndex];
                 if (opcion && opcion.value) {
-                    if (constanciaTractoInput) constanciaTractoInput.value = opcion.getAttribute('data-constancia') || '';
+                    setSelectValueEdit('constancia_inscripcion', opcion.getAttribute('data-constancia') || '');
                 } else {
-                    if (constanciaTractoInput) constanciaTractoInput.value = '';
+                    setSelectValueEdit('constancia_inscripcion', '');
+                }
+            });
+        }
+        if (constanciaTractoSelect) {
+            constanciaTractoSelect.addEventListener('change', function() {
+                const opcion = this.options[this.selectedIndex];
+                const cVal = (opcion && opcion.value) ? opcion.value : '';
+                const placas = window.placasData || [];
+                const found = placas.find(function(p){
+                    return String(p.ConstanciaInscripcion || '') === String(cVal) && String(p.TipoPlaca || '').toUpperCase() === 'TRACTO';
+                });
+                if (found) {
+                    setSelectValueEdit('placa_tracto', found.Placa || found.placa || '');
+                } else if (!cVal) {
+                    setSelectValueEdit('placa_tracto', '');
                 }
             });
         }
         
-        // Placa Carreta -> Constancia Carreta
+        // Placa Carreta <-> Constancia Carreta
         const placaCarretaSelect = document.getElementById('placa_carreta');
-        const constanciaCarretaInput = document.getElementById('constancia_inscripcion_2');
+        const constanciaCarretaSelect = document.getElementById('constancia_inscripcion_2');
         
         if (placaCarretaSelect) {
             placaCarretaSelect.addEventListener('change', function() {
                 const opcion = this.options[this.selectedIndex];
                 if (opcion && opcion.value) {
-                    if (constanciaCarretaInput) constanciaCarretaInput.value = opcion.getAttribute('data-constancia') || '';
+                    setSelectValueEdit('constancia_inscripcion_2', opcion.getAttribute('data-constancia') || '');
                 } else {
-                    if (constanciaCarretaInput) constanciaCarretaInput.value = '';
+                    setSelectValueEdit('constancia_inscripcion_2', '');
+                }
+            });
+        }
+        if (constanciaCarretaSelect) {
+            constanciaCarretaSelect.addEventListener('change', function() {
+                const opcion = this.options[this.selectedIndex];
+                const cVal = (opcion && opcion.value) ? opcion.value : '';
+                const placas = window.placasData || [];
+                const found = placas.find(function(p){
+                    return String(p.ConstanciaInscripcion || '') === String(cVal) && String(p.TipoPlaca || '').toUpperCase() === 'CARRETA';
+                });
+                if (found) {
+                    setSelectValueEdit('placa_carreta', found.Placa || found.placa || '');
+                } else if (!cVal) {
+                    setSelectValueEdit('placa_carreta', '');
                 }
             });
         }
     }
+
+    // Setear un valor en un select/input (con manejo de Choices.js).
+    // Si el elemento es <select> y el valor no existe entre sus opciones,
+    // lo agrega automáticamente para no perder datos guardados previamente.
+    function setSelectValueEdit(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (value === null || value === undefined) value = '';
+        value = String(value);
+        if (el.tagName === 'SELECT' && value !== '') {
+            let existe = false;
+            for (let i = 0; i < el.options.length; i++) {
+                if (String(el.options[i].value) === value) { existe = true; break; }
+            }
+            if (!existe) {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.text = value;
+                el.appendChild(opt);
+            }
+        }
+        try { el.value = value; } catch(e){}
+        const ci = (choicesInstances && choicesInstances[id]) || (window.choicesInstances && window.choicesInstances[id]);
+        if (ci && typeof ci.setChoiceByValue === 'function') {
+            try { ci.setChoiceByValue(value); } catch(e){}
+        }
+    }
+
+    // Limpiar estilos inline de deshabilitado en el contenedor Choices de un elemento
+    // (incluye los !important aplicados por bloquearControles/forceDisableAll).
+    // Localiza el contenedor con varias estrategias para máxima robustez.
+    function limpiarEstilosChoices(el) {
+        if (!el) return;
+        let choicesEl = null;
+        // 1) Hermano inmediato (posición estándar de Choices.js)
+        const sib = el.nextElementSibling;
+        if (sib && sib.classList && sib.classList.contains('choices')) choicesEl = sib;
+        // 2) Selector por id adyacente (#id + .choices)
+        if (!choicesEl && el.id) {
+            try { choicesEl = document.querySelector('#' + el.id + ' + .choices'); } catch(e){}
+        }
+        // 3) Cualquier .choices que contenga el select
+        if (!choicesEl) {
+            choicesEl = Array.from(document.querySelectorAll('.choices')).find(c => c.contains(el));
+        }
+        // 4) Desde la propia instancia Choices (propiedades DOM con clase .choices)
+        if (!choicesEl && window.choicesInstances && window.choicesInstances[el.id]) {
+            const ci = window.choicesInstances[el.id];
+            try {
+                for (const k in ci) {
+                    const v = ci[k];
+                    if (v && v.nodeType === 1 && v.classList && v.classList.contains('choices')) { choicesEl = v; break; }
+                }
+            } catch(ee){}
+        }
+        if (!choicesEl) return;
+        // Limpiar clases, atributos y estado del contenedor
+        choicesEl.classList.remove('is-disabled');
+        choicesEl.removeAttribute('aria-disabled');
+        choicesEl.removeAttribute('disabled');
+        try { choicesEl.disabled = false; } catch(e){}
+        const inner = choicesEl.querySelector('.choices__inner');
+        if (inner) {
+            inner.removeAttribute('aria-disabled');
+            inner.removeAttribute('disabled');
+            try { inner.disabled = false; } catch(e){}
+            ['background-color','color','cursor','pointer-events','box-shadow','padding','min-height','max-height','height','border','border-radius','opacity','user-select'].forEach(function(p){
+                try { inner.style.removeProperty(p); } catch(e){}
+            });
+        }
+        ['background-color','border','border-radius','box-shadow','opacity','pointer-events'].forEach(function(p){
+            try { choicesEl.style.removeProperty(p); } catch(e){}
+        });
+        const item = choicesEl.querySelector('.choices__list--single .choices__item');
+        if (item) {
+            try { item.style.removeProperty('color'); } catch(e){}
+            try { item.style.removeProperty('display'); } catch(e){}
+            try { item.style.removeProperty('white-space'); } catch(e){}
+        }
+        Array.from(choicesEl.querySelectorAll('input,button')).forEach(function(i){
+            try { i.removeAttribute('disabled'); i.disabled = false; } catch(e){}
+            try { i.style.removeProperty('pointer-events'); } catch(e){}
+            try { i.style.removeProperty('background'); } catch(e){}
+        });
+    }
+
+    // Limpiar TODOS los contenedores .choices de la página (red de seguridad).
+    // Quita cualquier estilo !important residual de deshabilitado y la clase is-disabled.
+    function limpiarTodosLosChoices() {
+        Array.from(document.querySelectorAll('.choices')).forEach(function(c){
+            try {
+                c.classList.remove('is-disabled');
+                c.removeAttribute('aria-disabled');
+                c.removeAttribute('disabled');
+                try { c.disabled = false; } catch(e){}
+                const inner = c.querySelector('.choices__inner');
+                if (inner) {
+                    inner.removeAttribute('aria-disabled');
+                    inner.removeAttribute('disabled');
+                    try { inner.disabled = false; } catch(e){}
+                    ['background-color','color','cursor','pointer-events','box-shadow','padding','min-height','max-height','height','border','border-radius','opacity'].forEach(function(p){
+                        try { inner.style.removeProperty(p); } catch(e){}
+                    });
+                }
+                ['background-color','border','border-radius','box-shadow','opacity','pointer-events'].forEach(function(p){
+                    try { c.style.removeProperty(p); } catch(e){}
+                });
+                Array.from(c.querySelectorAll('input,button')).forEach(function(i){
+                    try { i.removeAttribute('disabled'); i.disabled = false; } catch(e){}
+                    try { i.style.removeProperty('pointer-events'); } catch(e){}
+                    try { i.style.removeProperty('background'); } catch(e){}
+                });
+            } catch(e){}
+        });
+    }
+
+    // Destruir y recrear la instancia Choices de un select, garantizando que quede
+    // HABILITADA e interactuable (independientemente del estado previo de la instancia).
+    function recrearChoicesSelect(id, placeholderText) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        try {
+            const ci = (choicesInstances && choicesInstances[id]) || (window.choicesInstances && window.choicesInstances[id]);
+            if (ci && typeof ci.destroy === 'function') { try { ci.destroy(); } catch(e){} }
+            const cont = el.nextElementSibling;
+            if (cont && cont.classList && cont.classList.contains('choices')) {
+                try { cont.remove(); } catch(e){}
+            }
+            try { el.disabled = false; el.removeAttribute('disabled'); } catch(e){}
+            const nueva = new Choices(el, {
+                searchEnabled: true,
+                searchChoices: true,
+                shouldSort: false,
+                itemSelectText: '',
+                allowHTML: false,
+                searchResultLimit: 100,
+                position: 'auto',
+                placeholder: true,
+                placeholderValue: placeholderText || 'Seleccione',
+                noResultsText: 'No se encontraron resultados',
+                removeItemButton: false,
+                duplicateItemsAllowed: false,
+            });
+            if (window.choicesInstances) window.choicesInstances[id] = nueva;
+            if (choicesInstances) choicesInstances[id] = nueva;
+            // Re-aplicar la selección actual del select nativo a la nueva instancia
+            try { if (el.value) { nueva.setChoiceByValue(el.value); } } catch(e){}
+            try { if (typeof window.updateAllChoicesWrap === 'function') setTimeout(window.updateAllChoicesWrap, 120); } catch(e){}
+        } catch(e) { console.warn('[Edición] recrearChoicesSelect error #' + id, e); }
+    }
+
+    // Exponer globalmente para que despachosexternos.js pueda recrear instancias Choices
+    // si su propio listener de "Modificar" (habilitarControlesParaModificar) es el que actúa.
+    try { window.recrearChoicesSelectEdit = recrearChoicesSelect; } catch(e){}
 
     // Configurar eventos de productos
     function setupProductos() {
@@ -1613,46 +1912,31 @@
 
         if (!destinoSet) console.warn('[Edición] No se pudo seleccionar destino automáticamente - destCandidate=', destCandidate, 'vale.DestinoRUC=', vale.DestinoRUC);
         
-        // RUC y Dirección
-        const rucInput = document.getElementById('ruc');
-        if (rucInput) rucInput.value = vale.DestinoRUC || '';
+        // RUC y Dirección (RUC ahora es <select> dependiente)
+        setSelectValueEdit('ruc', vale.DestinoRUC || vale.RUC || '');
         
         const direccionInput = document.getElementById('direccion');
         if (direccionInput) direccionInput.value = vale.DestinoDireccion || '';
         
         // Chofer
-        if (vale.Chofer && choicesInstances['chofer']) {
-            choicesInstances['chofer'].setChoiceByValue(vale.Chofer.toString());
-        }
+        setSelectValueEdit('chofer', vale.Chofer || '');
         
-        // Brevete
-        const breveteInput = document.getElementById('brevete');
-        if (breveteInput) breveteInput.value = vale.Licencia || '';
+        // Brevete (ahora es <select> dependiente)
+        setSelectValueEdit('brevete', vale.Licencia || vale.LicenciaChofer || vale.Brevete || vale.brevete || '');
         
         // Transportista
-        if (vale.Transportista && choicesInstances['transportista']) {
-            choicesInstances['transportista'].setChoiceByValue(vale.Transportista.toString());
-        }
+        setSelectValueEdit('transportista', vale.Transportista || '');
         
-        // RUC Transportista
-        const rucTransportistaInput = document.getElementById('ruc_transportista');
-        if (rucTransportistaInput) rucTransportistaInput.value = vale.RUC_Transportista || '';
+        // RUC Transportista (ahora es <select> dependiente)
+        setSelectValueEdit('ruc_transportista', vale.RUC_Transportista || vale.ruc_transportista || '');
         
         // Placas
-        if (vale.Placa_Tracto && choicesInstances['placa_tracto']) {
-            choicesInstances['placa_tracto'].setChoiceByValue(vale.Placa_Tracto);
-        }
+        setSelectValueEdit('placa_tracto', vale.Placa_Tracto || '');
+        setSelectValueEdit('placa_carreta', vale.Placa_Carreta || '');
         
-        if (vale.Placa_Carreta && choicesInstances['placa_carreta']) {
-            choicesInstances['placa_carreta'].setChoiceByValue(vale.Placa_Carreta);
-        }
-        
-        // Constancias
-        const constanciaTractoInput = document.getElementById('constancia_inscripcion');
-        if (constanciaTractoInput) constanciaTractoInput.value = vale.Constancia_Inscripcion || '';
-        
-        const constanciaCarretaInput = document.getElementById('constancia_inscripcion_2');
-        if (constanciaCarretaInput) constanciaCarretaInput.value = vale.Constancia_Inscripcion_2 || '';
+        // Constancias (ahora son <select> dependientes)
+        setSelectValueEdit('constancia_inscripcion', vale.Constancia_Inscripcion || vale.ConstanciaInscripcion || '');
+        setSelectValueEdit('constancia_inscripcion_2', vale.Constancia_Inscripcion_2 || vale.ConstanciaInscripcion_2 || '');
         
         // Guía Remisión
         const guiaRemisionInput = document.getElementById('guiaRemision');
@@ -1832,6 +2116,8 @@
         // Función local para forzar deshabilitado en un segundo pase (reintento en caso de race conditions)
         function forceDisableAll() {
             try {
+                // Si el usuario ya habilitó la edición con "Modificar", NO volver a bloquear
+                if (_edicionHabilitada) return;
                 var container2 = document.getElementById('formDespacho') || document.querySelector('.despacho-form') || document.getElementById('formDespachoExterno') || document.body;
                 Array.from(container2.querySelectorAll('input,select,textarea,button')).forEach(function(el){
                     if (!el) return;
@@ -1877,6 +2163,8 @@
 
     function bloquearControles() {
         try {
+            // Resetear bandera de edición: mientras esté bloqueado, forceDisableAll puede actuar
+            _edicionHabilitada = false;
             console.log('[Edición] bloquearControles INICIO');
             // Buscar todos los inputs/selects/textarea en el DOCUMENTO (no solo un container)
             var allControls = Array.from(document.querySelectorAll('input,select,textarea,button'));
@@ -1946,10 +2234,13 @@
     // Habilitar solo los campos para edición (los que NO son: turno, despachador, codigo, fecha)
     function habilitarEdicion() {
         console.log('[Edición] Habilitando edición parcial');
+        // Marcar que la edición está habilitada (evita que forceDisableAll la re-bloquee)
+        _edicionHabilitada = true;
         
-        // Lista de campos que SE PUEDEN habilitar para edición
-        // Incluir 'chkTurno' para permitir que el usuario active el modo manual de turno
-        const camposEditables = ['fecha', 'destino', 'chofer', 'transportista', 'placa_tracto', 'placa_carreta', 'producto', 'cantidad', 'comentarios', 'guiaRemision', 'constancia_inscripcion', 'constancia_inscripcion_2', 'chkTurno'];
+        // Lista de campos que SE PUEDEN habilitar para edición.
+        // Incluye los campos dependientes (ruc, brevete, ruc_transportista, constancias)
+        // y 'chkTurno' para permitir que el usuario active el modo manual de turno.
+        const camposEditables = ['fecha', 'destino', 'ruc', 'chofer', 'brevete', 'transportista', 'ruc_transportista', 'placa_tracto', 'constancia_inscripcion', 'placa_carreta', 'constancia_inscripcion_2', 'producto', 'cantidad', 'comentarios', 'guiaRemision', 'chkTurno'];
         
         camposEditables.forEach(function(id){
             try {
@@ -1962,35 +2253,15 @@
                     try { el.style.removeProperty('color'); el.style.color = ''; } catch(e) {}
                     try { el.style.removeProperty('cursor'); el.style.cursor = ''; } catch(e) {}
                     try { el.style.removeProperty('pointer-events'); el.style.pointerEvents = ''; } catch(e) {}
+                    try { el.style.removeProperty('opacity'); el.style.opacity = ''; } catch(e) {}
                 }
                 // Habilitar instancia Choices si existe
                 if (window.choicesInstances && window.choicesInstances[id] && typeof window.choicesInstances[id].enable === 'function') {
                     window.choicesInstances[id].enable();
-                    // Quitar clase is-disabled del contenedor Choices
-                    try {
-                        let choicesEl = el.nextElementSibling;
-                        if (!choicesEl || !choicesEl.classList || !choicesEl.classList.contains('choices')) {
-                            choicesEl = Array.from(document.querySelectorAll('.choices')).find(c => c.contains(el));
-                        }
-                        if (choicesEl) {
-                            choicesEl.classList.remove('is-disabled');
-                            choicesEl.removeAttribute('aria-disabled');
-                            const inner = choicesEl.querySelector('.choices__inner');
-                            if (inner) {
-                                inner.removeAttribute('aria-disabled');
-                                // Forzar estilos de habilitado (fondo blanco, texto negro)
-                                try { inner.style.backgroundColor = '#ffffff'; } catch(e) {}
-                                try { inner.style.color = '#212529'; } catch(e) {}
-                                try { inner.style.cursor = 'text'; } catch(e) {}
-                                try { inner.style.pointerEvents = 'auto'; } catch(e) {}
-                            }
-                            const item = choicesEl.querySelector('.choices__list--single .choices__item');
-                            if (item) {
-                                try { item.style.color = '#212529'; } catch(e) {}
-                            }
-                        }
-                    } catch(e) { console.warn('[Edición] Error limpiando estilos Choices', id, e); }
                 }
+                // Limpiar estilos !important del contenedor Choices
+                // (bloquearControles/forceDisableAll los dejan con pointer-events:none important)
+                try { limpiarEstilosChoices(el); } catch(e) { console.warn('[Edición] Error limpiando estilos Choices', id, e); }
             } catch(e) { console.warn('[Edición] Error habilitando', id, e); }
         });
         
@@ -2005,9 +2276,32 @@
                     try { btn.style.removeProperty('pointer-events'); btn.style.pointerEvents = 'auto'; } catch(e) {}
                     try { btn.style.removeProperty('background-color'); btn.style.backgroundColor = ''; } catch(e) {}
                     try { btn.style.removeProperty('color'); btn.style.color = ''; } catch(e) {}
+                    try { btn.style.removeProperty('opacity'); btn.style.opacity = ''; } catch(e) {}
                 }
             } catch(e) {}
         });
+        
+        // Red de seguridad: limpiar TODOS los contenedores .choices de la página
+        // (por si algún estilos !important residual quedó sin limpiar en los selects)
+        try { limpiarTodosLosChoices(); } catch(e) { console.warn('[Edición] limpiarTodosLosChoices error', e); }
+        // Re-bloquear el turno (debe permanecer deshabilitado por diseño) tras la limpieza global
+        try {
+            const turnoEl = document.getElementById('turno');
+            if (turnoEl) turnoEl.setAttribute('disabled','disabled');
+            if (window.choicesInstances && window.choicesInstances['turno']) {
+                try { window.choicesInstances['turno'].disable(); } catch(e){}
+            }
+            if (typeof syncTurnoChoicesDisabled === 'function') syncTurnoChoicesDisabled();
+        } catch(e) { console.warn('[Edición] re-bloqueo turno error', e); }
+        
+        // GARANTIZAR que los selects principales con Choices queden interactuables:
+        // se recrea SIEMPRE la instancia Choices (destruir + crear) para que el dropdown
+        // responda al clic sin depender del estado previo de la instancia.
+        try {
+            ['destino','chofer','transportista','placa_tracto','placa_carreta'].forEach(function(id){
+                try { recrearChoicesSelect(id); } catch(e){ console.warn('[Edición] recrear garantizado #' + id, e); }
+            });
+        } catch(e) { console.warn('[Edición] Recreación garantizada error', e); }
         
         // Sincronizar aspecto visual de Choices habilitados
         try { if (typeof window.syncAllChoicesDisabled === 'function') window.syncAllChoicesDisabled(); } catch(e) {}
@@ -2352,13 +2646,13 @@
             ruc: rucVal,
             direccion: document.getElementById('direccion')?.value || '',
             chofer: choferVal,
-            brevete: document.getElementById('brevete')?.value || '',
+            brevete: getRealSelectValueEdit('brevete'),
             transportista: transportistaVal,
-            ruc_transportista: document.getElementById('ruc_transportista')?.value || '',
+            ruc_transportista: getRealSelectValueEdit('ruc_transportista'),
             Placa_Tracto: placaTractoVal,
             Placa_Carreta: placaCarretaVal,
-            Constancia_Inscripcion: document.getElementById('constancia_inscripcion')?.value || '',
-            Constancia_Inscripcion_2: document.getElementById('constancia_inscripcion_2')?.value || '',
+            Constancia_Inscripcion: getRealSelectValueEdit('constancia_inscripcion'),
+            Constancia_Inscripcion_2: getRealSelectValueEdit('constancia_inscripcion_2'),
             guiaRemision: document.getElementById('guiaRemision')?.value || '',
             productos: datosGrilla
         };
@@ -2449,5 +2743,32 @@
     // FIX: invocar setupTurnoAutomatico para adjuntar el listener del checkbox "Manual"
     // (sin esto, el checkbox no limpiaba los estilos !important y el dropdown de turno quedaba bloqueado)
     try { setupTurnoAutomatico(); } catch (e) { console.warn('[Edición] setupTurnoAutomatico init falló:', e); }
+    // Configurar campos sincronizados (Destino-RUC, Chofer-Brevete, Transportista-RUC, Placas-Constancias)
+    try { setupCamposSincronizados(); } catch (e) { console.warn('[Edición] setupCamposSincronizados init falló:', e); }
+
+    // FIX (dropdown de turno no desplegaba en modo Manual): listener de CAPTURA global que
+    // garantiza que el clic sobre el select de turno (con el checkbox Manual activo) abra el
+    // dropdown, incluso si el handler nativo de Choices u otros listeners no responden.
+    // Se ejecuta ANTES que cualquier otro listener (fase de captura) y solo actúa cuando:
+    //   - #turno no está deshabilitado (Manual marcado / edición habilitada)
+    //   - el clic ocurre dentro del contenedor .choices del turno
+    // Si el dropdown ya está abierto no fuerza nada, para no romper el toggle de cierre.
+    try {
+        document.addEventListener('click', function(evt) {
+            try {
+                var selT = document.getElementById('turno');
+                if (!selT) return;
+                if (selT.disabled) return; // solo cuando el turno está habilitado (Manual)
+                var contT = selT.closest('.choices');
+                if (!contT) return;
+                if (!contT.contains(evt.target)) return; // solo clic sobre el select de turno
+                if (!contT.classList.contains('is-open')) {
+                    forzarAperturaTurnoManual();
+                    var ciT = (window.choicesInstances && window.choicesInstances['turno']) || null;
+                    if (ciT && typeof ciT.showDropdown === 'function') { try { ciT.showDropdown(); } catch(e){} }
+                }
+            } catch(e) { /* ignore */ }
+        }, true);
+    } catch(e) { console.warn('[Edición] Error adjuntando listener de captura para turno', e); }
 
 })();

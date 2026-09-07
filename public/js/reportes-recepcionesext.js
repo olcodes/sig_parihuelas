@@ -1,13 +1,14 @@
-// reportes-recepcionesext.js - Reporte Recepciones Ext. V2.1 (Productos en columnas)
+// reportes-recepcionesext.js - Reporte Recepciones Ext. V2.2 (Productos en columnas)
 // Columnas: Fecha, Turno, N Vale, N Guia, N Doc Referencia, Origen, Transportista, Chofer, Observaciones,
 //           19003031, 19002924, 19003730, 19003521, Total General
-// Una fila por cada combinacion Vale+Guia, con los 4 productos especificos en columnas
+// Una fila por cada (Vale+Guia+Producto): si una guia tiene 2 productos salen 2 filas,
+// cada una con la cantidad en la columna de su producto y 0 en las demas
 
 (function() {
     'use strict';
     
     const timestamp = new Date().toISOString();
-    console.log('>>>>> REPORTE RECEPCIONES EXT. V2.1 - Timestamp:', timestamp, '<<<<<');
+    console.log('>>>>> REPORTE RECEPCIONES EXT. V2.2 - Timestamp:', timestamp, '<<<<<');
     console.log('[ReporteRecepcionesExt] Script cargado');
 
     // Codigos de producto fijos para las columnas
@@ -20,6 +21,12 @@
     let paginaActual = 1;
     let totalPaginas = 1;
     const LIMIT_PAGINA = 20;
+    
+    // Navegación por lotes de vales (500 vales por lote, igual que el reporte principal)
+    let offsetVales = 0;
+    let totalLotes = 1;
+    let loteActual = 1;
+    const LIMITE_VALES = 500;
     
     // Estado de filtros de columna (tipo Excel)
     let filtrosColumnaActivos = {};  // { "NVale": ["000001", "000002"], ... }
@@ -51,17 +58,25 @@
         
         // Cargar datos iniciales
         cargarDatos();
+        
+        // Configurar navegación por lotes de vales
+        setupNavegacionLotes();
     }
     
     // ============================================
     // CARGA DE DATOS
     // ============================================
     
-    function cargarDatos() {
+    function cargarDatos(nuevoOffset) {
+        // Si se indica un nuevo offset, cambiar de lote
+        if (nuevoOffset !== undefined) {
+            offsetVales = Math.max(0, nuevoOffset);
+        }
+        
         // Obtener filtros de texto (inputs simples, si existen)
         const filtros = obtenerFiltrosTexto();
         
-        console.log('[ReporteRecepcionesExt] Cargando datos del servidor...');
+        console.log('[ReporteRecepcionesExt] Cargando datos del servidor (lote ' + loteActual + ')...');
         
         fetch(window.BASE_URL + '/index.php?url=reportes/obtenerRecepcionesExternas', {
             method: 'POST',
@@ -70,7 +85,8 @@
                 pagina: 1,
                 filtros: filtros,
                 exportar: false,
-                agrupar: true  // Flag para que el servidor no pagine (agrupacion cliente-side)
+                agrupar: true,  // Flag para que el servidor no pagine (agrupacion cliente-side)
+                offsetVales: offsetVales
             })
         })
         .then(r => {
@@ -82,12 +98,25 @@
             if (res.success) {
                 datosOriginales = res.data || [];
                 
+                // Actualizar navegación por lotes de vales
+                totalLotes = res.totalLotes || 1;
+                loteActual = res.loteActual || 1;
+                offsetVales = res.offsetVales !== undefined ? res.offsetVales : offsetVales;
+                actualizarNavegacionLotes();
+                
                 console.log('[ReporteRecepcionesExt] Datos crudos:', datosOriginales.length, 'registros');
                 
-                // Agrupar datos por Vale+Guia y pivotear productos
-                datosAgrupados = agruparPorValeYGuia(datosOriginales);
+                // Separar datos por Vale+Guia+Producto (1 fila por producto de la guia)
+                datosAgrupados = separarPorGuiaYProducto(datosOriginales);
                 
-                console.log('[ReporteRecepcionesExt] Datos agrupados:', datosAgrupados.length, 'filas');
+                console.log('[ReporteRecepcionesExt] Datos separados:', datosAgrupados.length, 'filas');
+                
+                // Alimentar ColumnFilters con TODOS los valores unicos del dataset
+                // (no solo los de la pagina actual) para que los filtros tipo Excel
+                // muestren todas las opciones disponibles, igual que el reporte principal
+                if (window.ColumnFilters) {
+                    window.ColumnFilters.setServerUniqueValues(calcularUniqueValues(datosAgrupados));
+                }
                 
                 // Aplicar filtros y renderizar
                 aplicarFiltrosYRenderizar(1);
@@ -99,6 +128,77 @@
         .catch(err => {
             console.error('[ReporteRecepcionesExt] Error cargando datos:', err);
             mostrarNotificacion('Error de conexion al cargar datos', 'error');
+        });
+    }
+    
+    // ============================================
+    // NAVEGACION POR LOTES DE VALES
+    // ============================================
+    
+    /**
+     * Actualiza la UI de navegación por lotes (botones y texto)
+     */
+    function actualizarNavegacionLotes() {
+        const loteInfo = document.getElementById('loteInfo');
+        const btnAnt = document.getElementById('btnLoteAnterior');
+        const btnSig = document.getElementById('btnLoteSiguiente');
+        const btnPrimero = document.getElementById('btnLotePrimero');
+        const btnUltimo = document.getElementById('btnLoteUltimo');
+        const loteDetalle = document.getElementById('loteDetalle');
+        
+        if (loteInfo) loteInfo.textContent = loteActual + ' / ' + totalLotes;
+        
+        const alInicio = (loteActual <= 1);
+        const alFinal = (loteActual >= totalLotes);
+        
+        if (btnAnt) btnAnt.disabled = alInicio;
+        if (btnSig) btnSig.disabled = alFinal;
+        if (btnPrimero) btnPrimero.disabled = alInicio;
+        if (btnUltimo) btnUltimo.disabled = alFinal;
+        
+        if (loteDetalle) {
+            const desde = offsetVales + 1;
+            const hasta = Math.min(offsetVales + LIMITE_VALES, loteActual * LIMITE_VALES);
+            loteDetalle.textContent = '(Vale ' + desde + ' - ' + hasta + ')';
+        }
+    }
+    
+    /**
+     * Configura los botones de navegación por lotes
+     */
+    function setupNavegacionLotes() {
+        const btnPrimero = document.getElementById('btnLotePrimero');
+        const btnAnt = document.getElementById('btnLoteAnterior');
+        const btnSig = document.getElementById('btnLoteSiguiente');
+        const btnUltimo = document.getElementById('btnLoteUltimo');
+        
+        if (btnPrimero) btnPrimero.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (loteActual > 1) {
+                loteActual = 1;
+                cargarDatos(0);
+            }
+        });
+        if (btnAnt) btnAnt.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (loteActual > 1) {
+                loteActual--;
+                cargarDatos(offsetVales - LIMITE_VALES);
+            }
+        });
+        if (btnSig) btnSig.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (loteActual < totalLotes) {
+                loteActual++;
+                cargarDatos(offsetVales + LIMITE_VALES);
+            }
+        });
+        if (btnUltimo) btnUltimo.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (loteActual < totalLotes) {
+                loteActual = totalLotes;
+                cargarDatos((totalLotes - 1) * LIMITE_VALES);
+            }
         });
     }
     
@@ -187,75 +287,163 @@
     // ============================================
     
     /**
-     * Agrupa los datos planos (una fila por producto) en una fila por (Vale+Guia)
-     * con los 4 productos especificos como columnas.
+     * Determina si el texto de una observación corresponde a un ADICIONAL.
+     * Solo los adicionales se suman al total; pendientes, deja/lleva y
+     * regularizaciones quedan excluidos.
      */
-    function agruparPorValeYGuia(datosPlanos) {
-        const grupos = {};
+    function esObservacionAdicional(texto) {
+        const t = String(texto || '').trim().toLowerCase();
+        return t === 'a' || t.includes('adici');
+    }
+    
+    /**
+     * Separa los datos planos (una fila por producto) en una fila por
+     * (Vale+Guia+Producto), manteniendo los 4 productos especificos como columnas.
+     * Si una guia tiene 2 productos, se generan 2 filas; la cantidad de cada fila
+     * va en la columna de su producto y 0 en las demas.
+     * Los ADICIONALES de observacion se suman a la fila de su producto; si el
+     * producto del adicional no tiene linea propia, se genera su propia fila.
+     */
+    function separarPorGuiaYProducto(datosPlanos) {
+        // Mapa de guias: claveGuia -> { filaRef, productos: {codigo: fila}, adicionales: {codigo: cant} }
+        const guias = {};
+        const ordenGuias = [];
         
         datosPlanos.forEach(row => {
-            // Clave unica: NVale + NumeroGuia
-            const clave = (row.NVale || '') + '|' + (row.NumeroGuia || '');
+            const claveGuia = (row.NVale || '') + '|' + (row.NumeroGuia || '');
             
-            if (!grupos[clave]) {
-                // Inicializar grupo con datos del vale/guia
-                grupos[clave] = {
-                    Fecha: row.Fecha || '',
-                    Turno: row.Turno || '',
-                    NVale: row.NVale || '',
-                    Origen: row.Origen || '',
-                    Empresa: row.Empresa || '',
-                    Chofer: row.Chofer || '',
-                    NumeroGuia: row.NumeroGuia || '',
-                    NumeroDocRef: row.NumeroDocRef || '',
-                    ObservacionTexto: row.ObservacionTexto || '',
-                    cantidades: {
-                        '19003031': 0,
-                        '19002924': 0,
-                        '19003730': 0,
-                        '19003521': 0
-                    }
-                };
+            if (!guias[claveGuia]) {
+                guias[claveGuia] = { filaRef: row, productos: {}, adicionales: {} };
+                ordenGuias.push(claveGuia);
             }
             
-            // Acumular cantidad si el codigo del producto esta en nuestra lista
-            const codigo = String(row.CodigoProducto || '').trim();
-            const cantidad = parseFloat(row.CantidadProducto) || 0;
+            // ADICIONAL de observacion: se procesa UNA SOLA VEZ por guia (los campos
+            // de observacion de la guia se repiten en cada fila de producto, por eso
+            // se guarda solo la primera vez que se detecta para no duplicar el total).
+            const cantObs = parseFloat(row.CantidadObservada) || 0;
+            const codigoObs = String(row.CodigoProductoObs || '').trim();
+            const obsEsAdicional = esObservacionAdicional(row.TextoObservaciones) || esObservacionAdicional(row.ObservacionTexto);
+            if (cantObs > 0 && CODIGOS_PRODUCTO.includes(codigoObs) && obsEsAdicional) {
+                if (!(codigoObs in guias[claveGuia].adicionales)) {
+                    guias[claveGuia].adicionales[codigoObs] = cantObs;
+                }
+            }
             
+            // Linea de producto: crear/acumular la fila del producto (solo si esta en la lista)
+            const codigo = String(row.CodigoProducto || '').trim();
             if (CODIGOS_PRODUCTO.includes(codigo)) {
-                grupos[clave].cantidades[codigo] += cantidad;
+                if (!guias[claveGuia].productos[codigo]) {
+                    guias[claveGuia].productos[codigo] = crearFilaBase(row, codigo);
+                }
+                guias[claveGuia].productos[codigo].cantidades[codigo] += parseFloat(row.CantidadProducto) || 0;
             }
         });
         
-        // Convertir grupos a array plano para renderizado
+        // Convertir a array plano: una fila por producto de cada guia (en orden de aparicion)
         const resultado = [];
-        Object.keys(grupos).forEach(clave => {
-            const g = grupos[clave];
-            const p1 = g.cantidades['19003031'];
-            const p2 = g.cantidades['19002924'];
-            const p3 = g.cantidades['19003730'];
-            const p4 = g.cantidades['19003521'];
-            const total = p1 + p2 + p3 + p4;
+        ordenGuias.forEach(claveGuia => {
+            const guia = guias[claveGuia];
             
-            resultado.push({
-                Fecha: g.Fecha,
-                Turno: g.Turno,
-                NVale: g.NVale,
-                NumeroGuia: g.NumeroGuia,
-                NumeroDocRef: g.NumeroDocRef,
-                Origen: g.Origen,
-                Transportista: g.Empresa,
-                Chofer: g.Chofer,
-                Observaciones: g.ObservacionTexto,
-                Prod19003031: p1,
-                Prod19002924: p2,
-                Prod19003730: p3,
-                Prod19003521: p4,
-                TotalGeneral: total
+            // 1) Filas de productos con linea propia
+            Object.keys(guia.productos).forEach(codigo => {
+                const fila = guia.productos[codigo];
+                // Sumar el adicional del mismo producto si existe
+                if (guia.adicionales[codigo]) {
+                    fila.cantidades[codigo] += guia.adicionales[codigo];
+                }
+                resultado.push(construirFilaReporte(fila));
+            });
+            
+            // 2) Adicionales de productos sin linea propia -> generar su propia fila
+            Object.keys(guia.adicionales).forEach(codigoObs => {
+                if (guia.productos[codigoObs]) return; // ya sumado en la fila del producto
+                const fila = crearFilaBase(guia.filaRef, codigoObs);
+                fila.cantidades[codigoObs] += guia.adicionales[codigoObs];
+                resultado.push(construirFilaReporte(fila));
             });
         });
         
         return resultado;
+    }
+    
+    /**
+     * Crea la estructura interna de una fila (datos del vale/guia + acumulador
+     * de cantidades de los 4 productos) para un producto dado.
+     */
+    function crearFilaBase(row, codigo) {
+        return {
+            Fecha: row.Fecha || '',
+            Turno: row.Turno || '',
+            NVale: String(row.NVale || '').padStart(6, '0'),
+            NumeroGuia: row.NumeroGuia || '',
+            NumeroDocRef: row.NumeroDocRef || '',
+            Origen: row.Origen || '',
+            Empresa: row.Empresa || '',
+            Chofer: row.Chofer || '',
+            ObservacionTexto: row.ObservacionTexto || '',
+            // Texto de observacion DETALLADO del producto (ej. "DEJA 20 UND DEL CODIGO ... GUIA ...")
+            TextoObservacionesProducto: row.TextoObservacionesProducto || '',
+            codigoProducto: codigo,
+            cantidades: {
+                '19003031': 0,
+                '19002924': 0,
+                '19003730': 0,
+                '19003521': 0
+            }
+        };
+    }
+    
+    /**
+     * Convierte una fila interna al formato plano que consume la grilla y la exportacion.
+     */
+    function construirFilaReporte(fila) {
+        const p1 = fila.cantidades['19003031'];
+        const p2 = fila.cantidades['19002924'];
+        const p3 = fila.cantidades['19003730'];
+        const p4 = fila.cantidades['19003521'];
+        
+        return {
+            Fecha: fila.Fecha,
+            Turno: fila.Turno,
+            NVale: fila.NVale,
+            NumeroGuia: fila.NumeroGuia,
+            NumeroDocRef: fila.NumeroDocRef,
+            Origen: fila.Origen,
+            Transportista: fila.Empresa,
+            Chofer: fila.Chofer,
+            // Mostrar el detalle de observacion del producto; si no tiene,
+            // usar la observacion general de la guia como respaldo
+            Observaciones: fila.TextoObservacionesProducto || fila.ObservacionTexto,
+            Prod19003031: p1,
+            Prod19002924: p2,
+            Prod19003730: p3,
+            Prod19003521: p4,
+            TotalGeneral: p1 + p2 + p3 + p4
+        };
+    }
+    
+    /**
+     * Calcula los valores unicos de cada columna filtrable desde el dataset
+     * agrupado COMPLETO (no solo la pagina actual).
+     * Esto permite que los filtros tipo Excel muestren todas las opciones
+     * disponibles, igual que en el reporte principal de recepciones externas.
+     */
+    function calcularUniqueValues(datos) {
+        const campos = ['Fecha', 'Turno', 'NVale', 'NumeroGuia', 'NumeroDocRef', 'Origen', 'Transportista', 'Chofer', 'Observaciones', 'Prod19003031', 'Prod19002924', 'Prod19003730', 'Prod19003521', 'TotalGeneral'];
+        const unique = {};
+        datos.forEach(row => {
+            campos.forEach(campo => {
+                const valor = String(row[campo] || '').trim();
+                if (valor === '') return;
+                if (!unique[campo]) unique[campo] = new Set();
+                unique[campo].add(valor);
+            });
+        });
+        const result = {};
+        Object.keys(unique).forEach(campo => {
+            result[campo] = Array.from(unique[campo]).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+        });
+        return result;
     }
     
     /**
@@ -288,17 +476,44 @@
         console.log('[ReporteRecepcionesExt] Renderizando grilla. Filas:', datos.length);
         
         if (datos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="14" class="text-center py-4">No se encontraron registros</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="15" class="text-center py-4">No se encontraron registros</td></tr>';
             return;
         }
         
+        // Calcular numeración de items: filas consecutivas de la misma guía (NVale+NumeroGuia)
+        // comparten el mismo número de item y se combinan con rowspan.
+        // Se guarda el índice del item raíz (itemRaizIdx) para incrementar su rowspan en cada
+        // fila de continuación; si se usara items[length-1] se rompería con grupos de 3+ filas.
+        const items = [];
+        let itemActual = 0;
+        let claveAnterior = null;
+        let itemRaizIdx = -1;
         datos.forEach(row => {
+            const clave = String(row.NVale || '') + '|' + String(row.NumeroGuia || '');
+            if (clave !== claveAnterior) {
+                itemActual++;
+                items.push({ num: itemActual, rowspan: 1, start: true });
+                claveAnterior = clave;
+                itemRaizIdx = items.length - 1;
+            } else {
+                items[itemRaizIdx].rowspan++;
+                items.push({ num: itemActual, rowspan: 0, start: false });
+            }
+        });
+        
+        datos.forEach((row, idx) => {
             const tr = document.createElement('tr');
             
             const total = (row.TotalGeneral || 0).toFixed(2);
             const fechaFormateada = formatearFecha(row.Fecha);
+            const item = items[idx];
             
-            tr.innerHTML = `
+            // Columna Item: inicio de grupo con rowspan; el resto queda cubierto por el rowspan
+            const tdItem = item.start
+                ? `<td class="celda-item" rowspan="${item.rowspan}" style="text-align:center; vertical-align:middle; font-weight:600;">${item.num}</td>`
+                : '';
+            
+            tr.innerHTML = tdItem + `
                 <td>${fechaFormateada}</td>
                 <td>${row.Turno || ''}</td>
                 <td>${String(row.NVale || '').padStart(6, '0')}</td>

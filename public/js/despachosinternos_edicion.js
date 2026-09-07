@@ -579,6 +579,7 @@
         const btnAgregar = document.getElementById('btnAgregar');
         if (btnAgregar) {
             btnAgregar.addEventListener('click', function(e) {
+                console.log('[DIAG-Edit] click btnAgregar (listener EDICION) | editIndex=', editIndex, 'updatePhase=', updatePhase);
                 // Si hay una fila seleccionada pero no cargada en controles, al pulsar "Actualizar"
                 // debemos primero poblar los controles y pasar a fase 'editing'.
                 if (editIndex !== null && updatePhase === 'selected') {
@@ -665,6 +666,7 @@
             `;
             // Añadir comportamiento de selección para modo "seleccionar -> Actualizar -> Guardar"
             tr.addEventListener('click', function() {
+                console.log('[DIAG-Edit] click en FILA de grilla index=', index, 'producto=', item.producto);
                 // Marcar visualmente la fila seleccionada
                 tbody.querySelectorAll('tr').forEach(r => r.classList.remove('table-active'));
                 tr.classList.add('table-active');
@@ -721,22 +723,79 @@
         if (idx === null || typeof idx === 'undefined') return;
         const item = datosGrilla[idx];
         if (!item) return;
+        console.log('[DIAG-Edit] cargarFilaEnControlesEdit idx=', idx, 'item=', JSON.stringify(item), 'updatePhase=', updatePhase, '_esPaginaEdicion=', window._esPaginaEdicion);
 
-        // Seleccionar el producto en el select buscando por texto o código
+        // Reconstruir el select incluyendo el producto de la fila en edición (no excluirlo),
+        // para que el producto de la fila seleccionada esté disponible y pueda mostrarse en el select.
+        // (Mismo fix aplicado en Despachos Externos: sin esto, el producto queda excluido del select
+        //  por rebuildProductoSelectEdit y el select muestra otro producto al actualizar la fila.)
+        try { rebuildProductoSelectEdit(idx); } catch(e) { console.warn('[Edición] error rebuildProductoSelectEdit en cargarFilaEnControlesEdit', e); }
+
+        // Seleccionar el producto en el select.
+        // IMPORTANTE: en despachos internos la tabla despachos_internos_productos NO tiene
+        // columna ProductoId; por lo tanto item.productoId (si se guardó) es el Id del registro
+        // del vale y NO el Id del producto maestro. Por eso la selección NO debe priorizar
+        // productoId (podría coincidir por casualidad con el Id de OTRO producto maestro y
+        // mostrar un producto equivocado). Se busca primero por CÓDIGO (dato confiable),
+        // luego por texto, y como último recurso se agrega el producto de la fila al select.
         const productoSelect = document.getElementById('producto');
         if (productoSelect) {
             const opts = Array.from(productoSelect.options);
-            // Preferir seleccionar por el id/valor del option si está guardado
+            console.log('[DIAG-Edit] options count=', opts.length, '| primeras 5:', opts.slice(0,5).map(o => o.value + ':' + o.getAttribute('data-codigo') + ':' + o.textContent));
             let opt = null;
-            if (item.productoId) {
-                opt = opts.find(o => (o.value || '') === (item.productoId || ''));
+
+            const codigoFila = (item.codigo && String(item.codigo).trim() !== '') ? String(item.codigo).trim() : '';
+            const textoFila = (item.producto && String(item.producto).trim() !== '') ? String(item.producto).trim() : '';
+            // Normaliza texto para tolerar diferencias de espacios/mayúsculas
+            const normalizar = s => String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
+
+            // 1) Buscar por TEXTO EXACTO (DescripcionProducto guardada == text del option).
+            //    Es lo MÁS CONFiable porque el texto es único incluso cuando el código se repite
+            //    (hay códigos duplicados: 19003521 x9, 19003730 x6, 0 x5).
+            if (textoFila) {
+                opt = opts.find(o => (o.textContent || '').trim() === textoFila);
             }
-            // Si no encontramos por id, intentar por código o texto como antes
+            // 2) Buscar por texto normalizado (tolera espacios/mayúsculas)
+            if (!opt && textoFila) {
+                opt = opts.find(o => normalizar(o.textContent) === normalizar(textoFila));
+            }
+            // 3) Buscar por texto construido "codigo - producto" (por si la fila guarda solo el nombre)
+            if (!opt && textoFila) {
+                const fullText = (codigoFila ? codigoFila + ' - ' : '') + textoFila;
+                opt = opts.find(o => (o.textContent || '').trim() === fullText.trim());
+            }
+            // 4) Buscar por CÓDIGO solo si hay UNA única coincidencia (si el código está duplicado,
+            //    NO se puede decidir por código: podría elegir el producto equivocado).
+            if (!opt && codigoFila) {
+                const codigoMatches = opts.filter(o => (o.getAttribute('data-codigo') || '').trim() === codigoFila);
+                console.log('[DIAG-Edit] paso4-codigo codigoFila=', codigoFila, '| coincidencias por codigo=', codigoMatches.length);
+                if (codigoMatches.length === 1) {
+                    opt = codigoMatches[0];
+                }
+            }
+            // 5) Último recurso: si el producto de la fila no está en el select, agregarlo manualmente
             if (!opt) {
-                opt = opts.find(o => (o.getAttribute('data-codigo') || '').trim() === (item.codigo || '').trim() || (o.textContent || '').trim() === (item.producto || '').trim());
+                opt = document.createElement('option');
+                opt.value = (item.productoId && String(item.productoId) !== '') ? item.productoId : (item.codigo || '');
+                opt.text = (item.codigo && String(item.codigo).trim() !== '' ? String(item.codigo).trim() + ' - ' : '') + (item.producto || '');
+                opt.setAttribute('data-codigo', item.codigo || '');
+                if (item.unidadMedida) opt.setAttribute('data-unidadmedida', item.unidadMedida);
+                productoSelect.appendChild(opt);
+                // Registrar la opción en Choices sin reemplazar las existentes
+                if (window.choicesInstances && window.choicesInstances['producto']) {
+                    try {
+                        window.choicesInstances['producto'].setChoices(
+                            [{ value: opt.value, label: opt.text }],
+                            'value', 'label', false
+                        );
+                    } catch(e) { /* ignore */ }
+                }
+                console.log('[DIAG-Edit] paso5 fallback: option agregado manualmente =', opt.value + ':' + opt.text);
             }
+            console.log('[DIAG-Edit] opt final encontrado =', opt ? (opt.value + ' | data-codigo=' + opt.getAttribute('data-codigo') + ' | ' + opt.text) : 'NULL');
             if (opt) {
                 productoSelect.value = opt.value;
+                console.log('[DIAG-Edit] productoSelect.value asignado =', productoSelect.value);
                 if (window.choicesInstances && window.choicesInstances['producto']) {
                     // Set choice and re-run wrap function several times with delays
                     setTimeout(()=> {
@@ -1492,14 +1551,18 @@
         });
     }
 
-    // Reconstruir el select de productos excluyendo los que ya están en la grilla
-    function rebuildProductoSelectEdit() {
+    // Reconstruir el select de productos excluyendo los que ya están en la grilla.
+    // Si se pasa skipIndex, no se excluye la fila que se está editando para que su
+    // producto siga disponible en el select (mismo fix aplicado en Despachos Externos).
+    function rebuildProductoSelectEdit(skipIndex) {
         const productoSelect = document.getElementById('producto');
         if (!productoSelect) return;
         
         // Obtener descripciones de productos ya en la grilla
         const descripcionesEnGrilla = new Set();
-        datosGrilla.forEach(item => {
+        datosGrilla.forEach((item, index) => {
+            // No excluir la fila que se está editando para que su producto siga disponible en el select
+            if (typeof skipIndex !== 'undefined' && skipIndex !== null && index === skipIndex) return;
             if (item.producto) descripcionesEnGrilla.add(String(item.producto).trim());
         });
         
@@ -1635,7 +1698,8 @@
                     producto: prod.DescripcionProducto || '',
                     unidadMedida: prod.UnidadMedida || '',
                     cantidad: prod.Cantidad || '',
-                    comentarios: prod.Comentarios || ''
+                    comentarios: prod.Comentarios || '',
+                    productoId: prod.Id || prod.id || prod.ProductoId || prod.IdProducto || ''
                 });
             });
         }

@@ -508,6 +508,27 @@
                 span.textContent = numVal;
                 span.setAttribute('data-value', numVal);
             }
+            // Sincronizar flag de clickeabilidad y estilo con el valor final,
+            // para que el stock arrastrado por recalcularFilas() también quede
+            // en azul y clickeable (antes solo la fila 07:00 salía habilitada).
+            actualizarClickeable(span, numVal);
+        }
+    }
+
+    /**
+     * Actualiza data-clickable y el estilo de la celda según su valor final.
+     * Misma lógica visual que mostrarTexto(): clickeable solo si valor > 0.
+     */
+    function actualizarClickeable(span, valor) {
+        var clickable = (valor > 0) ? 'true' : 'false';
+        var esClickeable = (span.getAttribute('data-clickable') === 'true');
+        if ((clickable === 'true') !== esClickeable) {
+            span.setAttribute('data-clickable', clickable);
+            var estilo = 'text-align:center;';
+            if (valor > 0) {
+                estilo += 'cursor:pointer;text-decoration:underline dotted;color:#1a237e;';
+            }
+            span.setAttribute('style', estilo);
         }
     }
 
