@@ -72,8 +72,84 @@
             <p>Exportación de reporte consolidado del sistema</p>
         </div>
         
+        <?php
+        $anioActual = (int)date('Y');
+        $anios = range($anioActual, $anioActual - 10);
+        $mesActual = (int)date('n');
+        $meses = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+        ];
+        ?>
         <div class="card-consolidado">
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+            <div class="filtros-consolidado" style="text-align:left; margin-bottom:24px;">
+                <h5 style="color:#1e293b; margin-bottom:16px;"><i class="bi bi-funnel-fill me-2" style="color:#2563eb;"></i>Filtros de exportación</h5>
+
+                <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;">
+                    <div>
+                        <label class="form-label" style="font-weight:600; color:#334155; margin-bottom:4px;">Período</label>
+                        <select id="filtroPeriodo" class="form-select" style="min-width:140px;">
+                            <option value="dia">Día</option>
+                            <option value="mes" selected>Mes</option>
+                            <option value="anio">Año</option>
+                            <option value="rango">Rango</option>
+                        </select>
+                    </div>
+                    <div id="campoFecha" style="display:none;">
+                        <label class="form-label" style="font-weight:600; color:#334155; margin-bottom:4px;">Fecha</label>
+                        <input type="date" id="filtroFecha" class="form-control" value="<?= date('Y-m-d') ?>">
+                    </div>
+                    <div id="campoMes">
+                        <label class="form-label" style="font-weight:600; color:#334155; margin-bottom:4px;">Mes</label>
+                        <select id="filtroMes" class="form-select" style="min-width:150px;">
+                            <?php foreach ($meses as $num => $nombre): ?>
+                                <option value="<?= $num ?>" <?= $num === $mesActual ? 'selected' : '' ?>><?= $nombre ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div id="campoAnio">
+                        <label class="form-label" style="font-weight:600; color:#334155; margin-bottom:4px;">Año</label>
+                        <select id="filtroAnio" class="form-select" style="min-width:110px;">
+                            <?php foreach ($anios as $a): ?>
+                                <option value="<?= $a ?>" <?= $a === $anioActual ? 'selected' : '' ?>><?= $a ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div id="campoRangoInicio" style="display:none;">
+                        <label class="form-label" style="font-weight:600; color:#334155; margin-bottom:4px;">Fecha de inicio</label>
+                        <input type="date" id="filtroFechaInicio" class="form-control" value="<?= date('Y-m-01') ?>">
+                    </div>
+                    <div id="campoRangoFin" style="display:none;">
+                        <label class="form-label" style="font-weight:600; color:#334155; margin-bottom:4px;">Fecha de fin</label>
+                        <input type="date" id="filtroFechaFin" class="form-control" value="<?= date('Y-m-d') ?>">
+                    </div>
+                </div>
+
+                <div style="margin-top:18px;">
+                    <label class="form-label" style="font-weight:600; color:#334155; margin-bottom:6px;">Módulos a exportar</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:18px;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="modDespachoInterno" value="despacho_interno" checked>
+                            <label class="form-check-label" for="modDespachoInterno">Despacho Interno</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="modDespachoExterno" value="despacho_externo" checked>
+                            <label class="form-check-label" for="modDespachoExterno">Despacho Externo</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="modRecepcionInterna" value="recepcion_interna" checked>
+                            <label class="form-check-label" for="modRecepcionInterna">Recepción Interna</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="modRecepcionExterna" value="recepcion_externa" checked>
+                            <label class="form-check-label" for="modRecepcionExterna">Recepción Externa</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 80px;">
                 <button type="button" class="btn export-button" id="btnExportarConsolidado">
                     <i class="bi bi-file-earmark-excel-fill"></i>
                     Exportar Consolidado
@@ -131,6 +207,66 @@
         const cancelBtn = document.getElementById('exportCancelBtn');
 
         let controller = null;
+        const TIMEOUT_MS = 300000; // 5 minutos
+
+        // === Lógica de filtros (período: día/mes/año/rango y módulos) ===
+        const filtroPeriodo = document.getElementById('filtroPeriodo');
+        const campoFecha = document.getElementById('campoFecha');
+        const campoMes = document.getElementById('campoMes');
+        const campoAnio = document.getElementById('campoAnio');
+        const campoRangoInicio = document.getElementById('campoRangoInicio');
+        const campoRangoFin = document.getElementById('campoRangoFin');
+
+        function actualizarCamposPeriodo() {
+            const p = filtroPeriodo.value;
+            const rangoVisible = (p === 'rango');
+            campoFecha.style.display = (p === 'dia') ? 'block' : 'none';
+            campoMes.style.display = (p === 'mes') ? 'block' : 'none';
+            campoAnio.style.display = (p === 'mes' || p === 'anio') ? 'block' : 'none';
+            campoRangoInicio.style.display = rangoVisible ? 'block' : 'none';
+            campoRangoFin.style.display = rangoVisible ? 'block' : 'none';
+        }
+        filtroPeriodo.addEventListener('change', actualizarCamposPeriodo);
+        actualizarCamposPeriodo();
+
+        function construirFiltros() {
+            const p = filtroPeriodo.value;
+            const fecha = document.getElementById('filtroFecha').value;
+            const mes = document.getElementById('filtroMes').value;
+            const anio = document.getElementById('filtroAnio').value;
+            let fechaDesde = '', fechaHasta = '';
+
+            if (p === 'dia') {
+                if (!fecha) { showError('Seleccione una fecha.'); return null; }
+                fechaDesde = fecha;
+                fechaHasta = fecha;
+            } else if (p === 'mes') {
+                if (!mes || !anio) { showError('Seleccione mes y año.'); return null; }
+                const ultimoDia = new Date(parseInt(anio, 10), parseInt(mes, 10), 0).getDate();
+                fechaDesde = anio + '-' + String(mes).padStart(2, '0') + '-01';
+                fechaHasta = anio + '-' + String(mes).padStart(2, '0') + '-' + String(ultimoDia).padStart(2, '0');
+            } else if (p === 'rango') {
+                const fechaInicio = document.getElementById('filtroFechaInicio').value;
+                const fechaFin = document.getElementById('filtroFechaFin').value;
+                if (!fechaInicio || !fechaFin) { showError('Seleccione la fecha de inicio y de fin.'); return null; }
+                if (fechaInicio > fechaFin) { showError('La fecha de inicio no puede ser mayor que la fecha de fin.'); return null; }
+                fechaDesde = fechaInicio;
+                fechaHasta = fechaFin;
+            } else {
+                if (!anio) { showError('Seleccione el año.'); return null; }
+                fechaDesde = anio + '-01-01';
+                fechaHasta = anio + '-12-31';
+            }
+
+            const modulos = [];
+            ['modDespachoInterno', 'modDespachoExterno', 'modRecepcionInterna', 'modRecepcionExterna'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el && el.checked) modulos.push(el.value);
+            });
+            if (modulos.length === 0) { showError('Seleccione al menos un módulo para exportar.'); return null; }
+
+            return { fechaDesde: fechaDesde, fechaHasta: fechaHasta, modulos: modulos.join(',') };
+        }
 
         function showProgressModal() {
             modalRoot.style.display = 'block';
@@ -153,24 +289,49 @@
         });
 
         btnExportar.addEventListener('click', function() {
+            const filtros = construirFiltros();
+            if (!filtros) return; // showError ya notificó
+
             btnExportar.disabled = true;
             showProgressModal();
+
+            const params = new URLSearchParams();
+            params.set('fechaDesde', filtros.fechaDesde);
+            params.set('fechaHasta', filtros.fechaHasta);
+            params.set('modulos', filtros.modulos);
 
             setTimeout(() => {
                 const xhr = new XMLHttpRequest();
                 controller = xhr;
 
-                xhr.open('GET', '<?= app_url('reportes/exportarConsolidado') ?>', true);
+                xhr.open('GET', '<?= app_url('reportes/exportarConsolidado') ?>?' + params.toString(), true);
                 xhr.responseType = 'blob';
+                xhr.timeout = TIMEOUT_MS;
 
                 xhr.onload = function() {
                     if (xhr.status >= 200 && xhr.status < 300) {
-                        const disposition = xhr.getResponseHeader('Content-Disposition');
-                        const filename = getFilenameFromDisposition(disposition) || 'reporte_consolidado.xlsx';
-                        downloadBlob(xhr.response, filename);
+                        // Si el servidor devolvió un error HTML (aunque el status sea 200), no descargarlo como Excel
+                        if (xhr.response && xhr.response.type && xhr.response.type.indexOf('text/html') !== -1) {
+                            const reader = new FileReader();
+                            reader.onload = function() {
+                                showError('El servidor devolvió un error: ' + String(reader.result || '').slice(0, 300));
+                            };
+                            reader.readAsText(xhr.response);
+                        } else {
+                            const disposition = xhr.getResponseHeader('Content-Disposition');
+                            const filename = getFilenameFromDisposition(disposition) || 'reporte_consolidado.xlsx';
+                            downloadBlob(xhr.response, filename);
+                        }
                     } else {
                         showError('Respuesta del servidor: ' + xhr.status);
                     }
+                    hideProgressModal();
+                    btnExportar.disabled = false;
+                    controller = null;
+                };
+
+                xhr.ontimeout = function() {
+                    showError('La exportación excedió el tiempo límite (5 min). Intente con un rango de fechas más pequeño o menos módulos.');
                     hideProgressModal();
                     btnExportar.disabled = false;
                     controller = null;

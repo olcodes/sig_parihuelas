@@ -1,0 +1,32 @@
+[18:45:27] 
+[18:45:27] ======================================================================
+[18:45:27]   ACTUALIZAR SOLO CodigoProductoObs
+[18:45:27] ======================================================================
+[18:45:27] Fecha: 15/06/2026 18:45:27
+[18:45:27] Conexión a BD: OK
+[18:45:27] 
+[18:45:27] ======================================================================
+[18:45:27]   LEYENDO EXCEL
+[18:45:27] ======================================================================
+[18:46:29] Archivo cargado correctamente.
+[18:46:30] Encabezados: NVale, Fecha, Hora, Turno, Origen, Recepcionista, Empresa_Transportista, RUC_Transportista, Chofer, Brevete, Comentarios_Vale, Numero_Guia, Num_Doc_Ref, Obs_Guia, Cod_Producto_Obs, Cant_Observada_Guia, Texto_Observaciones, Cod_Producto, Descripcion_Producto, Unidad_Medida, Cantidad, Obs_Producto, Cant_Obs_Producto, Texto_Observaciones_Producto
+[18:46:30] 
+[18:46:30] ======================================================================
+[18:46:30]   PRECARGANDO GUÍAS
+[18:46:30] ======================================================================
+[18:46:30] Cargando guías existentes desde BD...
+[18:46:31] 33611 guías precargadas.
+[18:46:31] 
+[18:46:31] ======================================================================
+[18:46:31]   ACTUALIZANDO CodigoProductoObs
+[18:46:31] ======================================================================
+[18:51:23] 
+[18:51:23] ======================================================================
+[18:51:23]   RESUMEN
+[18:51:23] ======================================================================
+[18:51:23] Total filas leídas                : 42044
+[18:51:23] Guías actualizadas (CodigoProductoObs): 2420
+[18:51:23] Filas sin Cod_Producto_Obs (vacío) : 39620
+[18:51:23] Guías no encontradas en BD         : 0
+[18:51:23] Errores                            : 0
+[18:51:23] Tiempo                             : 356.61 segundos

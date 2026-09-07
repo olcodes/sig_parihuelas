@@ -1,0 +1,64 @@
+[17:05:49] 
+[17:05:49] ======================================================================
+[17:05:49]   INICIO IMPORTACIÓN CARGA MASIVA
+[17:05:49] ======================================================================
+[17:05:49] Fecha: 10/07/2026 17:05:49
+[17:05:49] Archivo: C:\wamp64\www\swlavoro\storage\importacion/datos_importacion.xlsx
+[17:05:51] Conexión a BD: OK
+[17:05:51] 
+[17:05:51] ======================================================================
+[17:05:51]   CARGANDO TABLAS MAESTRAS
+[17:05:51] ======================================================================
+[17:05:54] Turnos cargados: 3
+[17:05:54] Áreas cargadas: 30
+[17:05:54] Subáreas cargadas: 86
+[17:05:54] Responsables cargados: 66
+[17:05:54] Recepcionistas cargados: 89
+[17:05:54] Medios Transporte cargados: 5
+[17:05:54] Orígenes cargados: 113
+[17:05:54] Destinos cargados: 28
+[17:05:54] Transportistas cargados: 915
+[17:05:54] Choferes cargados: 1370
+[17:05:54] 
+[17:05:54] ======================================================================
+[17:05:54]   LEYENDO ARCHIVO EXCEL
+[17:05:54] ======================================================================
+[17:05:54] Archivo cargado correctamente.
+[17:05:54] 
+[17:05:54] ======================================================================
+[17:05:54]   PROCESANDO: Recepciones Externas
+[17:05:54] ======================================================================
+[17:05:54]   Hoja 'Recepciones_Externas': 100 filas de datos encontradas.
+[17:05:54]   Lote: filas 0 a 100 (total en este lote: 100)
+[17:05:54]   Precargando vales existentes en BD...
+[17:05:55]   10383 vales existentes precargados.
+[17:05:55]   Precargando guías existentes en BD...
+[17:05:55]   36135 guías existentes precargadas.
+[17:06:45]   ¡LOTE FINAL COMPLETADO! Todas las filas procesadas.
+[17:06:45]   Vales: 17 | Guías: 80 | Productos: 100 | Errores: 0
+[17:06:45] 
+[17:06:45] --------------------------------------------------
+[17:06:45]   RESUMEN DEL LOTE (filas 0 a 100)
+[17:06:45] --------------------------------------------------
+[17:06:45]   Vales insertados      : 17
+[17:06:45]   Guías insertadas      : 80
+[17:06:45]   Productos insertados  : 100
+[17:06:45]   Errores               : 0
+[17:06:45]   Advertencias (lote)   : 0
+[17:06:45]   Tiempo del lote       : 49.11 segundos
+[17:06:45] --------------------------------------------------
+[17:06:45]   ¡TODAS LAS FILAS PROCESADAS!
+[17:06:45] --------------------------------------------------
+[17:06:45]   Log parcial guardado en: C:\wamp64\www\swlavoro\storage\importacion/importacion_log.txt
+[17:06:45]   Memoria liberada: hoja 'Recepciones_Externas'
+[17:06:45] 
+[17:06:45] ======================================================================
+[17:06:45]   RESUMEN FINAL
+[17:06:45] ======================================================================
+[17:06:45] Total registros importados    : 197
+[17:06:45] Total filas con errores       : 0
+[17:06:45] Total filas omitidas          : 0
+[17:06:45] Total advertencias (no críticas): 0
+[17:06:45] Tiempo de ejecución           : 49.12 segundos
+[17:06:45] 
+[17:06:45] Log guardado en: C:\wamp64\www\swlavoro\storage\importacion/importacion_log.txt
