@@ -295,6 +295,19 @@
         const t = String(texto || '').trim().toLowerCase();
         return t === 'a' || t.includes('adici');
     }
+
+    // Observaciones tipo pendiente (P, DEJA, LLEVA, PT): restan del total
+    function esObservacionPendiente(texto) {
+        const t = String(texto || '').trim().toLowerCase();
+        return t === 'p' || t.includes('pend') || t === 'de' || t.includes('deja') ||
+               t === 'le' || t.includes('lleva') || t === 'pt' || t.includes('producto terminado');
+    }
+
+    // Observación Regulariza: el total neto equivale a la cantidad regularizada
+    function esObservacionRegulariza(texto) {
+        const t = String(texto || '').trim().toLowerCase();
+        return t === 'r' || t.includes('regular');
+    }
     
     /**
      * Separa los datos planos (una fila por producto) en una fila por
@@ -313,19 +326,31 @@
             const claveGuia = (row.NVale || '') + '|' + (row.NumeroGuia || '');
             
             if (!guias[claveGuia]) {
-                guias[claveGuia] = { filaRef: row, productos: {}, adicionales: {} };
+                guias[claveGuia] = { filaRef: row, productos: {}, adicionales: {}, pendientes: {}, regularizaciones: {} };
                 ordenGuias.push(claveGuia);
             }
             
-            // ADICIONAL de observacion: se procesa UNA SOLA VEZ por guia (los campos
+            // Observación de la guía: se procesa UNA SOLA VEZ por guia (los campos
             // de observacion de la guia se repiten en cada fila de producto, por eso
             // se guarda solo la primera vez que se detecta para no duplicar el total).
             const cantObs = parseFloat(row.CantidadObservada) || 0;
             const codigoObs = String(row.CodigoProductoObs || '').trim();
             const obsEsAdicional = esObservacionAdicional(row.TextoObservaciones) || esObservacionAdicional(row.ObservacionTexto);
-            if (cantObs > 0 && CODIGOS_PRODUCTO.includes(codigoObs) && obsEsAdicional) {
-                if (!(codigoObs in guias[claveGuia].adicionales)) {
-                    guias[claveGuia].adicionales[codigoObs] = cantObs;
+            const obsEsPendiente = esObservacionPendiente(row.TextoObservaciones) || esObservacionPendiente(row.ObservacionTexto);
+            const obsEsRegulariza = esObservacionRegulariza(row.TextoObservaciones) || esObservacionRegulariza(row.ObservacionTexto);
+            if (cantObs > 0 && CODIGOS_PRODUCTO.includes(codigoObs)) {
+                if (obsEsAdicional) {
+                    if (!(codigoObs in guias[claveGuia].adicionales)) {
+                        guias[claveGuia].adicionales[codigoObs] = cantObs;
+                    }
+                } else if (obsEsPendiente) {
+                    if (!(codigoObs in guias[claveGuia].pendientes)) {
+                        guias[claveGuia].pendientes[codigoObs] = cantObs;
+                    }
+                } else if (obsEsRegulariza) {
+                    if (!(codigoObs in guias[claveGuia].regularizaciones)) {
+                        guias[claveGuia].regularizaciones[codigoObs] = cantObs;
+                    }
                 }
             }
             
@@ -351,7 +376,7 @@
                 if (guia.adicionales[codigo]) {
                     fila.cantidades[codigo] += guia.adicionales[codigo];
                 }
-                resultado.push(construirFilaReporte(fila));
+                resultado.push(construirFilaReporte(fila, netoProducto(guia, fila, codigo)));
             });
             
             // 2) Adicionales de productos sin linea propia -> generar su propia fila
@@ -359,7 +384,7 @@
                 if (guia.productos[codigoObs]) return; // ya sumado en la fila del producto
                 const fila = crearFilaBase(guia.filaRef, codigoObs);
                 fila.cantidades[codigoObs] += guia.adicionales[codigoObs];
-                resultado.push(construirFilaReporte(fila));
+                resultado.push(construirFilaReporte(fila, netoProducto(guia, fila, codigoObs)));
             });
         });
         
@@ -394,13 +419,29 @@
     }
     
     /**
+     * Total neto de un producto dentro de su guía, usando la misma fórmula del
+     * CONSOLIDADO DE PRODUCTOS de la vista previa:
+     *   Total = Cant GR (+ Adicional) - Pendiente
+     * En observación Regulariza, el total neto es la cantidad regularizada.
+     */
+    function netoProducto(guia, fila, codigo) {
+        let neto = (fila.cantidades[codigo] || 0);
+        if (guia.pendientes && guia.pendientes[codigo]) neto -= guia.pendientes[codigo];
+        if (guia.regularizaciones && guia.regularizaciones[codigo]) neto = guia.regularizaciones[codigo];
+        return neto;
+    }
+
+    /**
      * Convierte una fila interna al formato plano que consume la grilla y la exportacion.
      */
-    function construirFilaReporte(fila) {
+    function construirFilaReporte(fila, totalNeto) {
         const p1 = fila.cantidades['19003031'];
         const p2 = fila.cantidades['19002924'];
         const p3 = fila.cantidades['19003730'];
         const p4 = fila.cantidades['19003521'];
+        
+        // Total Gral. con fórmula neta; fallback a la suma de columnas si no llega neto
+        const totalGral = (typeof totalNeto !== 'undefined' && totalNeto !== null) ? totalNeto : (p1 + p2 + p3 + p4);
         
         return {
             Fecha: fila.Fecha,
@@ -418,7 +459,7 @@
             Prod19002924: p2,
             Prod19003730: p3,
             Prod19003521: p4,
-            TotalGeneral: p1 + p2 + p3 + p4
+            TotalGeneral: totalGral
         };
     }
     

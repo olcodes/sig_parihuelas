@@ -745,7 +745,7 @@ console.log('%c[RecepcionesInternas-Edición] VERSIÓN 2026-02-22-FIX-BUCLE-v3 C
         const comentariosInput = document.getElementById('comentarios');
         const unidadInput = document.getElementById('unidadMedida');
         if (codigoInput) codigoInput.value = (item.codigo === '0' || item.codigo === 0) ? '0' : (item.codigo != null ? String(item.codigo) : '');
-        if (cantidadInput) cantidadInput.value = item.cantidad || '';
+        if (cantidadInput) cantidadInput.value = (item.cantidad === null || item.cantidad === undefined || item.cantidad === '') ? '' : item.cantidad;
         if (comentariosInput) comentariosInput.value = item.comentarios || '';
         if (unidadInput) unidadInput.value = item.unidadMedida || '';
 
@@ -766,6 +766,13 @@ console.log('%c[RecepcionesInternas-Edición] VERSIÓN 2026-02-22-FIX-BUCLE-v3 C
         const codigoInput = document.getElementById('codigo');
         const cantidadInput = document.getElementById('cantidad');
         const comentariosInput = document.getElementById('comentarios');
+        // Validar que la cantidad sea un número mayor a 0 antes de guardar la fila editada
+        const cantidadVal = cantidadInput?.value?.trim() ?? '';
+        if (cantidadVal === '' || isNaN(Number(cantidadVal)) || Number(cantidadVal) <= 0) {
+            alert('Debe ingresar una cantidad válida mayor a 0');
+            if (cantidadInput) cantidadInput.focus();
+            return;
+        }
         const opcionProducto = productoSelect?.options[productoSelect.selectedIndex];
         // Si el option seleccionado corresponde al mismo productoId que el registro
         // pero su texto en el maestro difiere de la descripción guardada en la grilla,
@@ -792,7 +799,7 @@ console.log('%c[RecepcionesInternas-Edición] VERSIÓN 2026-02-22-FIX-BUCLE-v3 C
             producto: productoText,
             productoId: opcionProducto ? String(opcionProducto.value || '') : (datosGrilla[idx].productoId || ''),
             unidadMedida: unidadMedida,
-            cantidad: cantidadInput?.value || '',
+            cantidad: cantidadVal,
             comentarios: comentariosInput?.value || ''
         };
 
@@ -1438,7 +1445,7 @@ console.log('%c[RecepcionesInternas-Edición] VERSIÓN 2026-02-22-FIX-BUCLE-v3 C
                     producto: prod.DescripcionProducto || '',
                     productoId: prod.ProductoId ? String(prod.ProductoId) : (prod.CodigoProducto ? String(prod.CodigoProducto) : ''),
                     unidadMedida: prod.UnidadMedida || '',
-                    cantidad: prod.Cantidad || '',
+                    cantidad: (prod.Cantidad === null || prod.Cantidad === undefined || prod.Cantidad === '') ? 0 : Number(prod.Cantidad),
                     comentarios: prod.Comentarios || ''
                 });
             });

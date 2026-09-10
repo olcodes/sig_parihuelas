@@ -2853,16 +2853,22 @@
 
     // Mapeo estático de los productos fijos (según campo Producto en la tabla Productos)
     // Orden previsto por el negocio: columna 1..8
-    // Deseado: EAN, EXI, JNG, JBL, RACK, PL AZUL, REV, NWZ
+    // Deseado: EAN, EXI, JNG, JBL, EAN (COMPRAS GLORIA), PL AZUL, REV, NWZ
     const FIXED_PRODUCTOS_BY_COL = {
         1: 'PARIHUELA MADERA EAN 1.00 X 1.20 MTRS',
         2: 'PARIHUELA EX IMPORTACION - ESTANDAR',
         3: 'JABA PLASTICA DE COLOR NEGRO 52 X 35 X 31',
         4: 'JABA PLASTICA DE COLOR BLANCO 60 X 40 X 10',
-        5: 'RACK METALICO PARA BOTELLAS',
+        5: 'PARIHUELA MADERA EAN 1.00 X 1.20 MTRS - COMPRAS GLORIA NUEVAS',
         6: 'PARIHUELA PLASTICA AZUL',
         7: 'PARIHUELA REVERSIBLE MADERA 1.12M X 1.16M X 15CM',
         8: 'PARIHUELA NEW ZELAND - ESTANDAR'
+    };
+
+    // Etiquetas de cabecera personalizadas (SOLO visuales) para diferenciar columnas
+    // cuyo producto comparte abreviatura (ej: col 5 = COMPRAS GLORIA NUEVAS -> 'EAN CN')
+    const HEADER_LABEL_OVERRIDE_BY_COL = {
+        5: 'EAN CN'
     };
 
     // Actualizar los textos y atributos de las cabeceras fijas según los datos cargados
@@ -2895,7 +2901,10 @@
                     // Mantener el atributo con la abreviatura y mostrar la ABREVIATURA
                     try { th.setAttribute('data-producto-fijo', found.Abreviatura || abreviaturaFija); } catch (e) {}
                     const span = th.querySelector('span');
-                    if (span) span.textContent = found.Abreviatura || abreviaturaFija;
+                    if (span) {
+                        const etiquetaPersonalizada = (colIndex && HEADER_LABEL_OVERRIDE_BY_COL[colIndex]) ? HEADER_LABEL_OVERRIDE_BY_COL[colIndex] : '';
+                        span.textContent = etiquetaPersonalizada || (found.Abreviatura || abreviaturaFija);
+                    }
                 }
             });
         } catch (e) {
@@ -4619,6 +4628,54 @@
             console.warn('[RecepcionesExternas] setFormEnabled error', e);
         }
     }
+
+    // Generar el texto de observación por producto (formato consistente con la vista previa)
+    function generarTextoObservacionProductoEdicion(obsText, cantObs, codigo, numeroGuia, colIndex, ptDeLe) {
+        if (!obsText || !cantObs || cantObs <= 0 || !numeroGuia) return '';
+        var lowerObs = (obsText || '').toLowerCase();
+        var codigoDisplay = codigo;
+
+        // DE/LE sobre EAN -> usar código EXI (Parihuela Ex Importación)
+        if ((lowerObs === 'de' || lowerObs.includes('deja') || lowerObs === 'le' || lowerObs.includes('lleva'))) {
+            try {
+                var exiProducto = (window.productosData || []).find(function(p) {
+                    var abre = (p.Abreviatura || '').toString().toUpperCase();
+                    var prod = (p.Producto || '').toString().trim().toUpperCase();
+                    return abre === 'EXI' || prod === 'PARIHUELA EX IMPORTACION - ESTANDAR';
+                });
+                if (exiProducto && exiProducto.Codigo) codigoDisplay = exiProducto.Codigo.toString();
+            } catch(e) {}
+        }
+
+        var esJaba = (colIndex == 3 || colIndex == 4);
+        if (!esJaba && codigo) {
+            try {
+                var headerFijo = document.querySelector('.col-producto-fija[data-producto-col="' + colIndex + '"]');
+                if (headerFijo) {
+                    var prodNombre = (headerFijo.getAttribute('data-producto-fijo') || '').toUpperCase();
+                    if (prodNombre.indexOf('J') === 0 || prodNombre.indexOf('JAB') >= 0) esJaba = true;
+                }
+            } catch(e) {}
+        }
+
+        if (lowerObs === 'p' || lowerObs.includes('pend'))
+            return 'PENDIENTE ' + cantObs + ' UND DEL CODIGO ' + codigoDisplay + ' GUIA ' + numeroGuia;
+        else if (lowerObs === 'de' || lowerObs.includes('deja'))
+            return 'DEJA ' + cantObs + (esJaba ? ' UND OBSERVADA/AS' : ' UND') + ' DEL CODIGO ' + codigoDisplay + ' GUIA ' + numeroGuia;
+        else if (lowerObs === 'le' || lowerObs.includes('lleva'))
+            return 'LLEVA ' + cantObs + (esJaba ? ' UND OBSERVADA/AS' : ' UND') + ' DEL CODIGO ' + codigoDisplay + ' GUIA ' + numeroGuia;
+        else if (lowerObs === 'a' || lowerObs.includes('adici'))
+            return 'ADICIONAL ' + cantObs + ' UND DEL CODIGO ' + codigoDisplay + ' GUIA ' + numeroGuia;
+        else if (lowerObs === 'r' || lowerObs.includes('regular'))
+            return 'REGULARIZA ' + cantObs + ' UND DEL CODIGO ' + codigoDisplay + ' GUIA ' + numeroGuia;
+        else if (lowerObs === 'pt' || lowerObs.includes('producto terminado')) {
+            if (ptDeLe === 'DE') return 'DEJA ' + cantObs + ' UND CON PT A';
+            else if (ptDeLe === 'LE') return 'LLEVA ' + cantObs + ' UND CON PT A';
+            return 'PT ' + cantObs + ' UND DEL CODIGO ' + codigoDisplay + ' GUIA ' + numeroGuia;
+        }
+
+        return '';
+    }
     
     /**
      * Serializar los datos del formulario y la grilla en un objeto listo para enviar
@@ -4770,6 +4827,33 @@
                     const obsProducto = selectObsProducto?.value || null;
                     const cantObsProducto = parseFloat(inputCantObsProducto?.value) || 0;
 
+                    // Generar texto de observación por producto (formato consistente con la vista previa)
+                    let textoObsProducto = '';
+                    if (obsProducto && cantObsProducto > 0) {
+                        try {
+                            // Texto de la opción de observación (ej: DEJA, LLEVA, PT, ADICIONAL...)
+                            const textoOpcionObs = selectObsProducto?.options[selectObsProducto.selectedIndex]?.text || '';
+
+                            // Sub-opción DE/LE cuando la observación es PT
+                            let ptDeLeProducto = '';
+                            try {
+                                const selPtDeLe = fila.querySelector(`.select-pt-de-le[data-producto-col="${colIndex}"]`);
+                                if (selPtDeLe && selPtDeLe.selectedIndex >= 0) {
+                                    ptDeLeProducto = (selPtDeLe.options[selPtDeLe.selectedIndex]?.text || selPtDeLe.value || '').toString().trim().toUpperCase();
+                                }
+                            } catch(e) {}
+
+                            textoObsProducto = generarTextoObservacionProductoEdicion(
+                                textoOpcionObs,
+                                cantObsProducto,
+                                codigoProducto,
+                                numeroGuia,
+                                colIndex,
+                                ptDeLeProducto
+                            );
+                        } catch(e) {}
+                    }
+
                     // Si existe observación para este producto y cantidad observada > 0,
                     // también mapearla a los campos de la guía (se guarda una sola observación por guía para compatibilidad)
                     if (selectObsProducto && selectObsProducto.value && inputCantObsProducto) {
@@ -4792,7 +4876,8 @@
                         cantidad: cantidad,
                         columna: colIndex,
                         observacion: obsProducto,
-                        cantidadObservada: cantObsProducto
+                        cantidadObservada: cantObsProducto,
+                        textoObservaciones: textoObsProducto
                     });
                 });
                 

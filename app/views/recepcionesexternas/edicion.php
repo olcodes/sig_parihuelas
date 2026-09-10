@@ -244,9 +244,9 @@
                                             <button type="button" class="btn-collapse-col" data-producto-col="4" title="Ocultar columna" style="cursor:pointer; border:none; background:transparent; font-size:0.7rem; padding:0 4px; margin-right:4px;">[-]</button>
                                             <span style="font-size:0.7rem; font-weight:600;">jbl</span>
                                         </th>
-                                        <th colspan="3" style="vertical-align:middle; text-align:center; padding:4px; background:#f3e5f5;" class="col-producto col-producto-fija" data-producto-col="5" data-producto-fijo="RCK">
+                                        <th colspan="3" style="vertical-align:middle; text-align:center; padding:4px; background:#f3e5f5;" class="col-producto col-producto-fija" data-producto-col="5" data-producto-fijo="EAN">
                                             <button type="button" class="btn-collapse-col" data-producto-col="5" title="Ocultar columna" style="cursor:pointer; border:none; background:transparent; font-size:0.7rem; padding:0 4px; margin-right:4px;">[-]</button>
-                                            <span style="font-size:0.7rem; font-weight:600;">rack</span>
+                                            <span style="font-size:0.7rem; font-weight:600;">EAN CN</span>
                                         </th>
                                         <th colspan="3" style="vertical-align:middle; text-align:center; padding:4px; background:#fffde7;" class="col-producto col-producto-fija" data-producto-col="6" data-producto-fijo="PLAZUL">
                                             <button type="button" class="btn-collapse-col" data-producto-col="6" title="Ocultar columna" style="cursor:pointer; border:none; background:transparent; font-size:0.7rem; padding:0 4px; margin-right:4px;">[-]</button>
