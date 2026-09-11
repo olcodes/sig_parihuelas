@@ -73,9 +73,21 @@ class RecepcionExternaProducto extends Model {
                 $data['CantidadObservada'] ?? 0
             );
             
+            // Sub-estado PT (DE = deja / LE = lleva). Se normaliza y solo se
+            // persisten valores válidos para evitar basura en la columna.
+            $ptSubtipo = $data['PtSubtipo'] ?? $data['ptSubtipo'] ?? null;
+            if (is_string($ptSubtipo)) {
+                $ptSubtipo = strtoupper(trim($ptSubtipo));
+                if (!in_array($ptSubtipo, ['DE', 'LE'], true)) {
+                    $ptSubtipo = null;
+                }
+            } else {
+                $ptSubtipo = null;
+            }
+            
             $sql = "INSERT INTO recepciones_externas_productos
-                    (GuiaId, CodigoProducto, DescripcionProducto, UnidadMedida, Cantidad, ColumnaProducto, Observacion, CantidadObservada, TextoObservaciones, Total)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (GuiaId, CodigoProducto, DescripcionProducto, UnidadMedida, Cantidad, ColumnaProducto, Observacion, PtSubtipo, CantidadObservada, TextoObservaciones, Total)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
@@ -86,6 +98,7 @@ class RecepcionExternaProducto extends Model {
                 $data['Cantidad'],
                 $data['ColumnaProducto'] ?? 1,
                 $data['Observacion'] ?? null,
+                $ptSubtipo,
                 $data['CantidadObservada'] ?? 0,
                 $data['TextoObservaciones'] ?? null,
                 $total

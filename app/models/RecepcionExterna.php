@@ -350,7 +350,7 @@ class RecepcionExterna extends Model {
                 
                 if (!empty($guiaIds)) {
                     $guiaPlaceholders = implode(',', array_fill(0, count($guiaIds), '?'));
-                    $sqlProds = "SELECT p.Id, p.GuiaId, p.CodigoProducto, p.DescripcionProducto, p.Cantidad, p.UnidadMedida, p.CantidadObservada, p.Observacion, p.TextoObservaciones, p.Total
+                    $sqlProds = "SELECT p.Id, p.GuiaId, p.CodigoProducto, p.DescripcionProducto, p.Cantidad, p.UnidadMedida, p.CantidadObservada, p.Observacion, p.PtSubtipo, p.TextoObservaciones, p.Total
                                 FROM recepciones_externas_productos p
                                 WHERE p.GuiaId IN ($guiaPlaceholders)
                                 ORDER BY p.GuiaId, p.ColumnaProducto ASC";
@@ -449,7 +449,7 @@ class RecepcionExterna extends Model {
             foreach ($guias as &$guia) {
                 error_log("[RecepcionExterna] Buscando productos para guía ID: " . $guia['Id']);
                 
-                $sqlProds = "SELECT p.Id, p.CodigoProducto, p.DescripcionProducto, p.Cantidad, p.UnidadMedida
+                $sqlProds = "SELECT p.Id, p.CodigoProducto, p.DescripcionProducto, p.Cantidad, p.UnidadMedida, p.Observacion, p.PtSubtipo, p.CantidadObservada, p.TextoObservaciones
                             FROM recepciones_externas_productos p
                             WHERE p.GuiaId = ?
                             ORDER BY p.ColumnaProducto ASC";

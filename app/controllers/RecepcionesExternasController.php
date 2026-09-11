@@ -331,6 +331,7 @@ class RecepcionesExternasController extends Controller {
                                 'Cantidad' => $cantidad,
                                 'ColumnaProducto' => $productoData['columna'] ?? 1,
                                 'Observacion' => $productoData['observacion'] ?? null,
+                                'PtSubtipo' => $productoData['ptSubtipo'] ?? null,
                                 'CantidadObservada' => $cantidadObservada,
                                 'TextoObservaciones' => $productoData['textoObservaciones'] ?? null
                             ];
@@ -503,6 +504,7 @@ class RecepcionesExternasController extends Controller {
                                 'Cantidad' => $cantidad,
                                 'ColumnaProducto' => $productoData['columna'] ?? 1,
                                 'Observacion' => $productoData['observacion'] ?? null,
+                                'PtSubtipo' => $productoData['ptSubtipo'] ?? null,
                                 'CantidadObservada' => $cantidadObservada,
                                 'TextoObservaciones' => $productoData['textoObservaciones'] ?? null
                             ];

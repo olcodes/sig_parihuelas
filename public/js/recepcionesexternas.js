@@ -1713,10 +1713,16 @@
                             } else if (lowerObs === 'r' || lowerObs.includes('regular')) {
                                 textoObs = `REGULARIZA ${cantObs} UND DEL CODIGO ${codigoDisplay} GUIA ${numeroGuia}`;
                             } else if (lowerObs === 'pt' || lowerObs.includes('producto terminado')) {
+                                // PT: DE/LE son sub-estados del PT (Producto Terminado).
+                                // Si el usuario todavía no eligió el sub-estado, se usa el
+                                // mismo fallback que generarTextoObservacionProducto() para
+                                // que la vista previa NUNCA pierda la línea del producto.
                                 if (ptDeLe === 'DE') {
                                     textoObs = `DEJA ${cantObs} UND CON PT A`;
                                 } else if (ptDeLe === 'LE') {
                                     textoObs = `LLEVA ${cantObs} UND CON PT A`;
+                                } else {
+                                    textoObs = `PT ${cantObs} UND DEL CODIGO ${codigoDisplay} GUIA ${numeroGuia}`;
                                 }
                             }
 
@@ -1804,9 +1810,15 @@
                         window._observacionesEditado = true;
                     });
                 }
-                // Auto-poblar solo si el usuario no ha editado manualmente
+                // Auto-poblar solo si el usuario no ha editado manualmente.
+                // IMPORTANTE: nunca vaciar automáticamente. Si la regeneración no produce
+                // texto (p. ej. PT sin sub-estado DE/LE disponible en el DOM) se conserva el
+                // valor existente para no perder las líneas de observación del vale.
                 if (!window._observacionesEditado) {
-                    obsTa.value = textoGenerado;
+                    var textoPrevio = (obsTa.value || '').trim();
+                    if (textoGenerado !== '' || textoPrevio === '') {
+                        obsTa.value = textoGenerado;
+                    }
                 }
             }
         } catch(e) {}
@@ -4345,6 +4357,8 @@
                         cantidad: cantidad,
                         columna: colIndex,
                         observacion: observacionProducto,
+                        // Sub-estado PT (DE / LE) persistido explícitamente en BD
+                        ptSubtipo: ptDeLeSeleccionado || null,
                         cantidadObservada: cantidadObservadaProducto,
                         textoObservaciones: obsTextProducto
                     });

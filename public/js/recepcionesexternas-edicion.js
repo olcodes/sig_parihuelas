@@ -268,6 +268,9 @@
         }
         
         setFieldValue('observaciones', vale.Observaciones);
+        // Las observaciones son un campo derivado de la grilla: la vista previa las
+        // regenera, pero nunca las vacía (ver guarda "nunca vaciar" en
+        // actualizarVistaPrevia) para no perder las líneas de PT (CON PT A).
         setFieldValue('comentarios', vale.Comentarios);
         
         // Poblar selects básicos (primero con value, luego con Choices)
@@ -372,6 +375,170 @@
         }
     }
     
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers de observación PT (Producto Terminado) con sub-estado DE / LE
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Resolver el texto (Item) de una observación a partir de su Id
+    function obtenerItemObservacionPorId(obsId) {
+        try {
+            if (obsId === null || obsId === undefined || obsId === '') return '';
+            const found = (window.observacionesData || []).find(function(o) {
+                return String(o.Id) === String(obsId);
+            });
+            return found ? (found.Item || '').toString().trim().toUpperCase() : '';
+        } catch (e) { return ''; }
+    }
+
+    // Determinar el sub-estado PT (DE/LE) de un producto cargado desde BD.
+    // 1) Columna explícita PtSubtipo (post-migración)
+    // 2) Fallback legacy: derivado del texto guardado (DEJA/LLEVA ... CON PT A)
+    function obtenerPtSubtipoProducto(producto) {
+        try {
+            if (!producto) return '';
+            let subtipo = (producto.PtSubtipo || '').toString().trim().toUpperCase();
+            if (subtipo === 'DE' || subtipo === 'LE') return subtipo;
+            const texto = (producto.TextoObservaciones || '').toString().trim().toUpperCase();
+            if (texto.indexOf('CON PT') >= 0) {
+                if (texto.indexOf('LLEVA') === 0) return 'LE';
+                if (texto.indexOf('DEJA') === 0) return 'DE';
+            }
+            return '';
+        } catch (e) { return ''; }
+    }
+
+    // Determinar si un texto de observación corresponde a PT
+    function esObservacionPT(obsText) {
+        try {
+            const t = (obsText || '').toString().trim().toUpperCase();
+            return (t === 'PT' || t.indexOf('PRODUCTO TERMINADO') >= 0);
+        } catch (e) { return false; }
+    }
+
+    // Pintar el badge (DE)/(LE) en la celda de observación de un producto
+    function mostrarPtBadgeCelda(row, col, valor) {
+        try {
+            if (!row) return;
+            const td = row.querySelector('.celda-producto-obs[data-producto-col="' + col + '"]');
+            if (!td) return;
+            const oldB = td.querySelector('.pt-badge');
+            if (oldB) oldB.remove();
+            if (valor) {
+                const b = document.createElement('span');
+                b.className = 'pt-badge';
+                b.textContent = '(' + valor + ')';
+                b.style.cssText = 'display:inline-block;font-size:0.6rem;font-weight:700;color:#fff;background:#1a237e;border-radius:2px;padding:0 4px;margin-left:2px;line-height:16px;vertical-align:middle;';
+                (td.querySelector('div') || td).appendChild(b);
+            }
+        } catch (e) {}
+    }
+
+    // Sincronizar el sub-select PT (DE/LE) y su badge con la observación actual de la celda
+    function refrescarEstadoPtFila(row, col) {
+        try {
+            if (!row) return;
+            const sel = row.querySelector('.select-pt-de-le[data-producto-col="' + col + '"]');
+            if (!sel) return;
+            const selectObs = row.querySelector('.select-obs-producto[data-producto-col="' + col + '"]');
+            let obsText = '';
+            if (selectObs && selectObs.selectedIndex >= 0) {
+                obsText = (selectObs.options[selectObs.selectedIndex].text || '').toString().trim().toUpperCase();
+            }
+            if (!obsText && selectObs) {
+                obsText = obtenerItemObservacionPorId(selectObs.getAttribute('data-selected-obs'));
+            }
+            if (!obsText) return; // No se pudo determinar: conservar el estado actual
+            const esPT = esObservacionPT(obsText);
+            if (esPT) {
+                mostrarPtBadgeCelda(row, col, (sel.value || '').toString().trim().toUpperCase());
+            } else {
+                if (sel.value) { sel.value = ''; sel.setAttribute('data-pt-subtipo', ''); }
+                mostrarPtBadgeCelda(row, col, '');
+            }
+        } catch (e) {}
+    }
+
+    // Configurar el handler del select de observación por producto.
+    // Cuando la observación es PT se ofrece la elección del sub-estado DE / LE
+    // mediante un popup flotante y se pinta el badge correspondiente.
+    function configurarSelectObsProducto(select) {
+        if (!select || select.getAttribute('data-pt-handler') === '1') return;
+        select.setAttribute('data-pt-handler', '1');
+        select.addEventListener('change', function() {
+            try {
+                const col = select.getAttribute('data-producto-col');
+                const row = select.closest('tr');
+                const inputCantObs = row.querySelector(`.input-cant-obs-producto[data-producto-col="${col}"]`);
+                const selectPtDeLe = row.querySelector(`.select-pt-de-le[data-producto-col="${col}"]`);
+                const tdObs = row.querySelector(`.celda-producto-obs[data-producto-col="${col}"]`);
+
+                var obsVal = select.value ? select.options[select.selectedIndex].text.trim().toUpperCase() : '';
+                if (obsVal === 'PT') {
+                    // Limpiar badge previo
+                    mostrarPtBadgeCelda(row, col, '');
+                    // Cerrar popup PT previo si existe
+                    document.querySelectorAll('.pt-sub-menu').forEach(function(el) { el.remove(); });
+                    if (selectPtDeLe) { selectPtDeLe.value = ''; selectPtDeLe.setAttribute('data-pt-subtipo', ''); }
+                    // Crear popup flotante a la derecha
+                    var popup = document.createElement('div');
+                    popup.className = 'pt-sub-menu';
+                    popup.setAttribute('data-pt-col', col);
+                    popup.style.cssText = 'position:absolute;left:100%;top:0;z-index:9999;background:#fff;border:1px solid #999;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-size:0.7rem;white-space:nowrap;';
+
+                    var optDe = document.createElement('div');
+                    optDe.textContent = 'DE';
+                    optDe.style.cssText = 'padding:3px 10px;cursor:pointer;border-bottom:1px solid #eee;';
+                    optDe.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (selectPtDeLe) { selectPtDeLe.value = 'DE'; selectPtDeLe.setAttribute('data-pt-subtipo', 'DE'); }
+                        if (inputCantObs) inputCantObs.removeAttribute('disabled');
+                        this.parentElement.remove();
+                        mostrarPtBadgeCelda(row, col, 'DE');
+                        // El usuario modificó la grilla: permitir regenerar las observaciones
+                        window._observacionesEditadoEdicion = false;
+                        calcularTotales();
+                        actualizarVistaPrevia();
+                    });
+
+                    var optLe = document.createElement('div');
+                    optLe.textContent = 'LE';
+                    optLe.style.cssText = 'padding:3px 10px;cursor:pointer;';
+                    optLe.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (selectPtDeLe) { selectPtDeLe.value = 'LE'; selectPtDeLe.setAttribute('data-pt-subtipo', 'LE'); }
+                        if (inputCantObs) inputCantObs.removeAttribute('disabled');
+                        this.parentElement.remove();
+                        mostrarPtBadgeCelda(row, col, 'LE');
+                        // El usuario modificó la grilla: permitir regenerar las observaciones
+                        window._observacionesEditadoEdicion = false;
+                        calcularTotales();
+                        actualizarVistaPrevia();
+                    });
+
+                    popup.appendChild(optDe);
+                    popup.appendChild(optLe);
+
+                    if (tdObs) {
+                        tdObs.style.position = 'relative';
+                        tdObs.appendChild(popup);
+                    }
+                } else {
+                    if (selectPtDeLe) { selectPtDeLe.value = ''; selectPtDeLe.setAttribute('data-pt-subtipo', ''); }
+                    mostrarPtBadgeCelda(row, col, '');
+                    if (select.value && select.value !== '') {
+                        if (inputCantObs) inputCantObs.removeAttribute('disabled');
+                    } else {
+                        if (inputCantObs) { inputCantObs.value = ''; inputCantObs.setAttribute('disabled', 'disabled'); }
+                    }
+                }
+            } catch (e) {}
+            // El usuario modificó la grilla: permitir regenerar las observaciones
+            window._observacionesEditadoEdicion = false;
+            calcularTotales();
+            actualizarVistaPrevia();
+        });
+    }
+
     // Poblar grilla de guías
     function poblarGrillaGuias(guias) {
         const tbody = document.querySelector('#tablaGrillaGuias tbody');
@@ -445,19 +612,31 @@
                 const cantidadObservada = producto && producto.CantidadObservada !== null && producto.CantidadObservada !== undefined
                     ? String(parseInt(producto.CantidadObservada))
                     : '';
+
+                // Sub-estado PT (DE / LE) guardado del producto (columna PtSubtipo)
+                const ptSubtipo = obtenerPtSubtipoProducto(producto);
                 
                 if (producto) {
                     console.log('[Edición] Guía', index + 1, 'Producto col', col, '- Cantidad:', cantidad, 'Obs:', observacion, 'CantObs:', cantidadObservada);
                 }
                 
                 // Cantidad GR - usar type="text" para evitar flechas, solo enteros
-                html += '<td style="padding:2px;"><input type="text" class="form-control form-control-sm input-cant-producto" data-producto-col="' + col + '" value="' + (cantidad !== '' ? cantidad : '') + '" style="width:60px; text-align:center; font-size:0.65rem;" pattern="[0-9]*" inputmode="numeric"></td>';
+                html += '<td style="padding:2px;" class="celda-producto-cantidad" data-producto-col="' + col + '"><input type="text" class="form-control form-control-sm input-cant-producto" data-producto-col="' + col + '" value="' + (cantidad !== '' ? cantidad : '') + '" style="width:60px; text-align:center; font-size:0.65rem;" pattern="[0-9]*" inputmode="numeric"></td>';
                 
-                // Observación (select) - ahora es específica del producto
-                html += '<td style="padding:2px;"><select class="form-select form-select-sm select-obs-producto" data-producto-col="' + col + '" style="width:100px; font-size:0.65rem;" data-selected-obs="' + observacion + '"><option value=""></option></select></td>';
+                // Observación (select) + sub-select PT (DE/LE) - específicos del producto
+                html += '<td style="padding:2px;" class="celda-producto-obs" data-producto-col="' + col + '">'
+                      +   '<div style="display:flex; align-items:center; gap:2px; white-space:nowrap;">'
+                      +     '<select class="form-select form-select-sm select-obs-producto" data-producto-col="' + col + '" style="width:100px; font-size:0.65rem;" data-selected-obs="' + observacion + '"><option value=""></option></select>'
+                      +     '<select class="form-select form-select-sm select-pt-de-le" data-producto-col="' + col + '" data-pt-subtipo="' + ptSubtipo + '" style="font-size:0.65rem; padding:1px 2px; height:22px; line-height:1; width:32px; display:none; flex:0 0 auto;">'
+                      +       '<option value=""></option>'
+                      +       '<option value="DE"' + (ptSubtipo === 'DE' ? ' selected' : '') + '>DE</option>'
+                      +       '<option value="LE"' + (ptSubtipo === 'LE' ? ' selected' : '') + '>LE</option>'
+                      +     '</select>'
+                      +   '</div>'
+                      + '</td>';
                 
                 // Cantidad Obs - ahora es específica del producto
-                html += '<td style="padding:2px;"><input type="text" class="form-control form-control-sm input-cant-obs-producto" data-producto-col="' + col + '" value="' + (cantidadObservada !== '' ? cantidadObservada : '') + '" style="width:60px; text-align:center; font-size:0.65rem;" pattern="[0-9]*" inputmode="numeric"></td>';
+                html += '<td style="padding:2px;" class="celda-producto-cantobs" data-producto-col="' + col + '"><input type="text" class="form-control form-control-sm input-cant-obs-producto" data-producto-col="' + col + '" value="' + (cantidadObservada !== '' ? cantidadObservada : '') + '" style="width:60px; text-align:center; font-size:0.65rem;" pattern="[0-9]*" inputmode="numeric"></td>';
             }
             
             tr.innerHTML = html;
@@ -518,6 +697,16 @@
             console.log('[Edición] Calculando totales de la grilla');
             calcularTotales();
         }
+
+        // Restaurar el estado PT (sub-select DE/LE + badge) de los productos cargados,
+        // ahora que los selects de observación ya tienen sus opciones y valor asignado.
+        try {
+            tbody.querySelectorAll('.select-pt-de-le').forEach(function(selPt) {
+                const col = selPt.getAttribute('data-producto-col');
+                const row = selPt.closest('tr');
+                refrescarEstadoPtFila(row, col);
+            });
+        } catch (e) { console.warn('[Edición] Error restaurando estado PT:', e); }
     }
     
     // Configurar en una fila cargada (modo edición) los listeners que faltan para el
@@ -569,6 +758,11 @@
             });
         }
         
+        // Selects de observación por producto (incluye popup PT con sub-estado DE/LE)
+        tr.querySelectorAll('.select-obs-producto').forEach(function(selectObs) {
+            configurarSelectObsProducto(selectObs);
+        });
+
         // Enter en todos los campos de la fila (comportamiento como Tab)
         const todosLosCampos = tr.querySelectorAll('input, select');
         todosLosCampos.forEach(function(campo) {
@@ -2627,8 +2821,14 @@
                         window._observacionesEditadoEdicion = true;
                     });
                 }
+                // Auto-poblar solo si el usuario no editó manualmente y NUNCA vaciar
+                // automáticamente: si la regeneración no produce texto (p. ej. PT sin
+                // sub-estado DE/LE disponible) se conserva el valor existente.
                 if (!window._observacionesEditadoEdicion) {
-                    edObsTa.value = edTextoGenerado;
+                    var edTextoPrevio = (edObsTa.value || '').trim();
+                    if (edTextoGenerado !== '' || edTextoPrevio === '') {
+                        edObsTa.value = edTextoGenerado;
+                    }
                 }
             }
         } catch(e) {}
@@ -3440,8 +3640,24 @@
         selectsObs.forEach(function(s) {
             const prev = s.value || '';
             s.innerHTML = optsObs;
-            try { if (prev) s.value = prev; } catch(e){}
+            try {
+                if (prev) {
+                    s.value = prev;
+                } else {
+                    // Restaurar el valor guardado en el atributo (filas cargadas desde BD
+                    // antes de que las observaciones terminaran de llegar del backend)
+                    const prevGuardado = s.getAttribute('data-selected-obs') || '';
+                    if (prevGuardado) s.value = prevGuardado;
+                }
+            } catch(e){}
         });
+
+        // Refrescar el estado PT (sub-select DE/LE + badge) de las filas ya existentes
+        try {
+            document.querySelectorAll('#tablaGrillaGuias tbody .select-pt-de-le').forEach(function(selPt) {
+                refrescarEstadoPtFila(selPt.closest('tr'), selPt.getAttribute('data-producto-col'));
+            });
+        } catch (e) {}
     }
     
     // Agregar nueva fila de guía
@@ -4827,6 +5043,10 @@
                     const obsProducto = selectObsProducto?.value || null;
                     const cantObsProducto = parseFloat(inputCantObsProducto?.value) || 0;
 
+                    // Sub-opción DE/LE cuando la observación es PT (se declara fuera del
+                    // if para poder persistirla en la columna PtSubtipo)
+                    let ptDeLeProducto = '';
+
                     // Generar texto de observación por producto (formato consistente con la vista previa)
                     let textoObsProducto = '';
                     if (obsProducto && cantObsProducto > 0) {
@@ -4834,12 +5054,10 @@
                             // Texto de la opción de observación (ej: DEJA, LLEVA, PT, ADICIONAL...)
                             const textoOpcionObs = selectObsProducto?.options[selectObsProducto.selectedIndex]?.text || '';
 
-                            // Sub-opción DE/LE cuando la observación es PT
-                            let ptDeLeProducto = '';
                             try {
                                 const selPtDeLe = fila.querySelector(`.select-pt-de-le[data-producto-col="${colIndex}"]`);
-                                if (selPtDeLe && selPtDeLe.selectedIndex >= 0) {
-                                    ptDeLeProducto = (selPtDeLe.options[selPtDeLe.selectedIndex]?.text || selPtDeLe.value || '').toString().trim().toUpperCase();
+                                if (selPtDeLe) {
+                                    ptDeLeProducto = (selPtDeLe.value || selPtDeLe.options[selPtDeLe.selectedIndex]?.text || '').toString().trim().toUpperCase();
                                 }
                             } catch(e) {}
 
@@ -4876,6 +5094,8 @@
                         cantidad: cantidad,
                         columna: colIndex,
                         observacion: obsProducto,
+                        // Sub-estado PT (DE / LE) persistido explícitamente en BD
+                        ptSubtipo: ptDeLeProducto || null,
                         cantidadObservada: cantObsProducto,
                         textoObservaciones: textoObsProducto
                     });
