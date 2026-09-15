@@ -1124,6 +1124,11 @@
         var updatePhase = null;
 
         function rebuildProductoSelect(selectedCodigo, skipIndex){
+            // FIX (página de edición): este select de producto es gobernado por
+            // despachosexternos_edicion.js (rebuildProductoSelectEdit). Reconstruirlo aquí
+            // creaba una segunda instancia de Choices sobre el mismo <select> y destruía la
+            // del script de edición, dejando el dropdown inoperable. Salir en edición.
+            if (window._esPaginaEdicion) return;
             var productoSelect = productoEl;
             if(!productoSelect) return;
             productoSelect.innerHTML = '';
@@ -1312,6 +1317,11 @@
         // Agregar/Actualizar producto a grilla
         if(btnAgregar && grilla){
             btnAgregar.addEventListener('click', function(){
+                // FIX (página de edición): en despachosexternos/edicion este listener queda
+                // duplicado con el de despachosexternos_edicion.js y, como usa su propio
+                // editIndex (null), cae en la rama de "nuevo producto": duplicaba la fila en
+                // la grilla y luego limpiaba los campos. Ignorar en edición.
+                if (window._esPaginaEdicion) return;
                 // Si hay una fila seleccionada pero aún no se cargó en los controles,
                 // cargarla ahora en vez de exigir que el usuario vuelva a elegir producto.
                 if(updatePhase === 'selected' && editIndex !== null){
@@ -1429,6 +1439,8 @@
         var btnQuitar = document.getElementById('btnQuitar');
         if(btnQuitar){
             btnQuitar.addEventListener('click', function(){
+                // FIX (página de edición): el manejo de la grilla lo hace despachosexternos_edicion.js.
+                if (window._esPaginaEdicion) return;
                 if(editIndex === null){
                     alert('Seleccione una fila para quitar.');
                     return;
@@ -1448,6 +1460,8 @@
         var btnLimpiar = document.getElementById('btnLimpiar');
         if (btnLimpiar) {
             btnLimpiar.addEventListener('click', function(){
+                // FIX (página de edición): el manejo de la grilla lo hace despachosexternos_edicion.js.
+                if (window._esPaginaEdicion) return;
                 try{ rebuildProductoSelect(); }catch(e){}
                 try{ limpiarControlesExternos(); }catch(e){}
             });

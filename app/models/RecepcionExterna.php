@@ -350,8 +350,10 @@ class RecepcionExterna extends Model {
                 
                 if (!empty($guiaIds)) {
                     $guiaPlaceholders = implode(',', array_fill(0, count($guiaIds), '?'));
-                    $sqlProds = "SELECT p.Id, p.GuiaId, p.CodigoProducto, p.DescripcionProducto, p.Cantidad, p.UnidadMedida, p.CantidadObservada, p.Observacion, p.PtSubtipo, p.TextoObservaciones, p.Total
+                    $sqlProds = "SELECT p.Id, p.GuiaId, p.CodigoProducto, p.DescripcionProducto, p.Cantidad, p.UnidadMedida, p.CantidadObservada, p.Observacion, p.PtSubtipo, p.TextoObservaciones, p.Total,
+                                 obsProd.Item AS ItemObservacionProducto
                                 FROM recepciones_externas_productos p
+                                LEFT JOIN observaciones obsProd ON obsProd.Id = p.Observacion
                                 WHERE p.GuiaId IN ($guiaPlaceholders)
                                 ORDER BY p.GuiaId, p.ColumnaProducto ASC";
                     $stmtProds = $this->db->prepare($sqlProds);

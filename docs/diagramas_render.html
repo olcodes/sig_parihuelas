@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Renderizado de Diagramas – Lavoro-ERP (para capturar/descargar)</title>
+
+  <!-- Mermaid desde CDN (gratis, se renderiza en tu navegador) -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      securityLevel: 'loose',
+      fontFamily: 'Calibri, Arial, sans-serif'
+    });
+  </script>
+
+  <!-- Librería para convertir SVG a PNG sin problemas de canvas (Mermaid usa foreignObject) -->
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Calibri', 'Arial', sans-serif;
+      background: #f4f6f8;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 24px;
+    }
+    h1 { color: #1a3a5c; border-bottom: 3px solid #e67e22; padding-bottom: 8px; }
+    .nota {
+      background: #fff8e1;
+      border-left: 4px solid #f39c12;
+      padding: 12px 16px;
+      margin: 16px 0;
+      font-size: 12pt;
+    }
+    .diagrama-card {
+      background: #fff;
+      border: 1px solid #dce3ed;
+      border-radius: 8px;
+      margin: 28px 0;
+      padding: 18px;
+      page-break-inside: avoid;
+    }
+    .diagrama-card h2 {
+      margin: 0 0 4px;
+      color: #2c5282;
+      font-size: 15pt;
+    }
+    .diagrama-card .titulo {
+      color: #666;
+      font-style: italic;
+      margin: 0 0 12px;
+      font-size: 10.5pt;
+    }
+    .diagrama-container {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+      overflow-x: auto;
+    }
+    .diagrama-container svg { background: #fff; max-width: 100%; height: auto; }
+    .botones { margin-top: 10px; text-align: right; }
+    .botones button {
+      background: #1a3a5c;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 14px;
+      margin-left: 8px;
+      font-size: 10.5pt;
+      cursor: pointer;
+    }
+    .botones button:hover { background: #2c5282; }
+    .indice { background: #fff; border: 1px solid #dce3ed; border-radius: 8px; padding: 16px 24px; }
+    .indice ol { margin: 0; padding-left: 22px; }
+    .indice a { color: #1a3a5c; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <h1>Diagramas Lavoro-ERP – Render local para capturar o descargar</h1>
+
+  <div class="nota">
+    <strong>Instrucciones:</strong> Cada diagrama se dibuja automáticamente al abrir este archivo en
+    <strong>Chrome o Edge</strong> (con conexión a internet la primera vez). Para usarlos en el documento Word:
+    haz clic en <strong>"Descargar PNG"</strong> (imagen lista para insertar) o <strong>"Descargar SVG"</strong>
+    (calidad vectorial), o simplemente toma una <strong>captura de pantalla</strong> de cada recuadro.
+    <br><br>
+    Si algún diagrama no aparece, espera unos segundos a que Mermaid termine de renderizar y recarga la página.
+  </div>
+
+  <div class="indice">
+    <ol>
+      <li><a href="#d-paquetes">Diagrama de Paquetes / Vista Lógica</a></li>
+      <li><a href="#d-arquitectura">Diagrama de Arquitectura / Componentes (Cliente–Servidor)</a></li>
+      <li><a href="#d-modulos">Diagrama de Módulos Funcionales del Sistema</a></li>
+      <li><a href="#d-clases">Diagrama de Clases principal</a></li>
+      <li><a href="#d-er-conceptual">Diagrama Entidad–Relación conceptual</a></li>
+      <li><a href="#d-er-fisico">Diagrama Entidad–Relación físico</a></li>
+      <li><a href="#d-contexto">Diagrama de Contexto del Sistema</a></li>
+      <li><a href="#d-actores">Diagrama de Actores</a></li>
+      <li><a href="#d-cu-vri">Caso de Uso – Registrar VRI</a></li>
+      <li><a href="#d-cu-vre">Caso de Uso – Registrar VRE</a></li>
+      <li><a href="#d-cu-vdi">Caso de Uso – Registrar VDI</a></li>
+      <li><a href="#d-cu-vde">Caso de Uso – Registrar VDE</a></li>
+    </ol>
+  </div>
+
+  <!-- ==========================================================
+       DIAGRAMA DE PAQUETES
+       ========================================================== -->
+  <div class="diagrama-card" id="d-paquetes">
+    <h2>1. Diagrama de Paquetes / Vista Lógica</h2>
+    <p class="titulo">Figura – Paquetes del sistema Lavoro-ERP (Modelo de Software)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph TB
+    subgraph PQ001["PQ001 - Núcleo del Framework (core/)"]
+        APP["App<br/>(Router)"]
+        CTRL_BASE["Controller<br/>(Clase base)"]
+        MDL_BASE["Model<br/>(Clase base)"]
+    end
+
+    subgraph PQ002["PQ002 - Controladores (app/controllers/)"]
+        LOGIN["LoginController"]
+        RI["RecepcionesInternasController"]
+        DI["DespachosInternosController"]
+        RE["RecepcionesExternasController"]
+        DE["DespachosExternosController"]
+        REP["ReportesController"]
+        KARDEX["KardexParihuelasController"]
+        AVANCE["AvanceDiarioController"]
+        ADMIN["AuditoriaController, UsuariosController,<br/>RolesController, PrivilegiosController"]
+    end
+
+    subgraph PQ003["PQ003 - Modelos (app/models/)"]
+        RIM["RecepcionInterna"]
+        DIM["DespachoInterno"]
+        REM["RecepcionExterna"]
+        DEM["DespachoExterno"]
+        USR["User"]
+        AUD["Auditoria"]
+        PROD["Producto, Area, Subarea,<br/>Responsable, Chofer, Transportista"]
+    end
+
+    subgraph PQ004["PQ004 - Vistas (app/views/)"]
+        VWS["Plantillas PHP por módulo<br/>(formularios, tablas, modales, reportes)"]
+    end
+
+    subgraph PQ005["PQ005 - Helpers (app/helpers/)"]
+        HLP["base_url, redirect,<br/>excel_export, url_helper"]
+    end
+
+    subgraph PQ006["PQ006 - API (app/api/)"]
+        API["consultarDni, consultarCarnet,<br/>current_user (endpoints AJAX)"]
+    end
+
+    subgraph PQ007["PQ007 - Configuración (config/)"]
+        DB_CFG["Database<br/>(Singleton PDO)"]
+        HOST["hosting, database"]
+    end
+
+    subgraph PQ008["PQ008 - Dependencias (vendor/)"]
+        XLSX["PhpSpreadsheet<br/>(exportación Excel)"]
+    end
+
+    APP -->|"despacha"| PQ002
+    PQ002 -->|"instancia"| PQ003
+    PQ003 -->|"usa (heredan de)"| PQ001
+    PQ002 -->|"heredan de"| PQ001
+    PQ002 -->|"renderiza"| PQ004
+    PQ002 -->|"usa"| PQ005
+    PQ003 -->|"usa"| PQ007
+    PQ005 -->|"usa"| PQ008
+    PQ006 -.->|"integra (Factiliza)"| API
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-paquetes', 'diagrama_paquetes')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-paquetes', 'diagrama_paquetes')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       DIAGRAMA DE ARQUITECTURA / COMPONENTES
+       ========================================================== -->
+  <div class="diagrama-card" id="d-arquitectura">
+    <h2>2. Diagrama de Arquitectura / Componentes (Cliente–Servidor)</h2>
+    <p class="titulo">Figura – Diagrama de componentes del sistema Lavoro-ERP (sección Arquitectura)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph TB
+    subgraph CLIENT["🌐 Cliente (Navegador)"]
+        BR["Bootstrap 5 + jQuery<br/>CSS / JavaScript"]
+    end
+
+    subgraph SERVER["🖥️ Servidor Web (Apache/Nginx + PHP)"]
+        subgraph PUBLIC["public/"]
+            EP["index.php<br/>(Entry Point)"]
+        end
+        subgraph CORE["core/"]
+            ROUTER["App.php<br/>(Router)"]
+            BASE_C["Controller.php<br/>(Base Controller)"]
+            BASE_M["Model.php<br/>(Base Model)"]
+        end
+        subgraph APP["app/"]
+            CTRL["Controllers<br/>(módulos)"]
+            MDL["Models<br/>(entidades)"]
+            VWS["Views<br/>(plantillas PHP)"]
+            HLP["Helpers<br/>(base_url, excel_export)"]
+        end
+        subgraph CFG["config/"]
+            DB_CFG["database.php<br/>(Singleton PDO)"]
+        end
+        subgraph VENDOR["vendor/"]
+            XLSX["PhpSpreadsheet<br/>(exportar Excel)"]
+        end
+    end
+
+    subgraph DB["🗄️ Base de Datos MySQL"]
+        TABLES["+20 tablas relacionales"]
+    end
+
+    subgraph EXT["🌍 APIs Externas"]
+        FACTILIZA["Factiliza API<br/>(DNI / Brevete)"]
+    end
+
+    BR -->|"Petición HTTP"| EP
+    EP --> ROUTER
+    ROUTER --> CTRL
+    CTRL --> MDL
+    MDL --> BASE_M
+    BASE_M --> DB_CFG
+    DB_CFG --> TABLES
+    CTRL --> VWS
+    VWS --> BR
+    CTRL --> HLP
+    HLP --> XLSX
+    XLSX -->|"Descarga .xlsx"| BR
+    APP -.->|"Caché local"| FACTILIZA
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-arquitectura', 'diagrama_arquitectura')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-arquitectura', 'diagrama_arquitectura')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       DIAGRAMA DE MÓDULOS FUNCIONALES
+       ========================================================== -->
+  <div class="diagrama-card" id="d-modulos">
+    <h2>3. Diagrama de Módulos Funcionales del Sistema</h2>
+    <p class="titulo">Figura – Componentes/módulos del sistema Lavoro-ERP (sección Diagrama de Componentes)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph TB
+    subgraph FRONT["🌐 Interfaz Web (Navegador)"]
+        UI["Login / Autenticación<br/>Menú principal por roles"]
+    end
+
+    subgraph CORE["⚙️ Núcleo del Sistema (Framework MVC)"]
+        MOD1["Módulo Recepciones Internas"]
+        MOD2["Módulo Despachos Internos"]
+        MOD3["Módulo Recepciones Externas"]
+        MOD4["Módulo Despachos Externos"]
+        MOD5["Módulo Kardex de Parihuelas"]
+        MOD6["Módulo Avance Diario"]
+        MOD7["Módulo Plan de Abastecimiento"]
+        MOD8["Módulo Documentación"]
+        MOD9["Módulo de Reportes y Exportación Excel"]
+        MOD10["Módulo de Auditoría"]
+        MOD11["Administración de Usuarios, Roles y Privilegios"]
+        MOD12["Gestión de Tablas Maestras<br/>(Productos, Áreas, Responsables, Transportistas)"]
+    end
+
+    subgraph DATA["🗄️ Base de Datos MySQL"]
+        TABLES2["+20 tablas relacionales<br/>(vales, guías, usuarios, auditoría)"]
+    end
+
+    subgraph EXT2["🌍 Servicios Externos"]
+        API2["Factiliza API<br/>(DNI / Brevete)"]
+    end
+
+    UI -->|"Acceso por rol"| CORE
+    MOD1 --> DATA
+    MOD2 --> DATA
+    MOD3 --> DATA
+    MOD4 --> DATA
+    MOD5 --> DATA
+    MOD6 --> DATA
+    MOD7 --> DATA
+    MOD8 --> DATA
+    MOD9 --> DATA
+    MOD10 --> DATA
+    MOD11 --> DATA
+    MOD12 --> DATA
+    MOD3 -.->|"Consulta DNI / Brevete"| API2
+    MOD4 -.->|"Consulta DNI / Brevete"| API2
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-modulos', 'diagrama_modulos')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-modulos', 'diagrama_modulos')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       DIAGRAMA DE CLASES
+       ========================================================== -->
+  <div class="diagrama-card" id="d-clases">
+    <h2>4. Diagrama de Clases principal</h2>
+    <p class="titulo">Figura – Diagrama de clases del sistema Lavoro-ERP (Modelo de Software)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+classDiagram
+    class Controller {
+        +model(nombre) object
+        +view(ruta, data) void
+        +requirePrivilegio(priv) void
+    }
+    class Model {
+        #db PDO
+        +__construct()
+        +query(sql, params) mixed
+        +lastInsertId() int
+    }
+    class Database {
+        -instance Database
+        -connection PDO
+        +getInstance() Database
+        +getConnection() PDO
+    }
+    class App {
+        -controller string
+        -method string
+        -params array
+        +__construct()
+        -parseUrl() array
+    }
+    class LoginController {
+        +index() void
+        +auth() void
+        +logout() void
+    }
+    class RecepcionesInternasController {
+        +index() void
+        +guardar() void
+        +modificar() void
+        +anular() void
+        +siguienteVale() void
+        +imprimir(id) void
+    }
+    class DespachosInternosController {
+        +index() void
+        +edicion() void
+        +guardar() void
+        +anular() void
+        +reactivar() void
+        +siguienteVale() void
+    }
+    class RecepcionesExternasController {
+        +index() void
+        +guardar() void
+        +siguienteVale() void
+        +obtenerChoferes() array
+        +obtenerTransportistas() array
+    }
+    class DespachosExternosController {
+        +index() void
+        +guardar() void
+        +anular() void
+        +reactivar() void
+        +siguienteVale() void
+    }
+    class RecepcionInterna {
+        +getById(id) array
+        +registrarRecepcion(data) int
+        +modificar(data) bool
+        +anular(id, motivo) bool
+        +obtenerSiguienteVale() int
+        +actualizarProductoEspecifico(...) bool
+    }
+    class DespachoInterno {
+        +getById(id) array
+        +registrar(data) int
+        +modificar(data) bool
+        +anular(id, motivo) bool
+        +reactivar(id) bool
+        +puedeModificar(id) array
+        +obtenerSiguienteVale() int
+    }
+    class RecepcionExterna {
+        +registrarRecepcion(data) int
+        +getById(id) array
+        +obtenerSiguienteVale() int
+    }
+    class DespachoExterno {
+        +registrar(data) int
+        +modificar(data) bool
+        +anular(id, motivo) bool
+        +reactivar(id) bool
+        +puedeModificar(id) array
+        +obtenerSiguienteVale() int
+    }
+    class User {
+        +findByUsername(username) array
+        +getById(id) array
+        +getPaginatedFiltered(limit, offset, busq) array
+        +countFiltered(busq) int
+    }
+    class Auditoria {
+        +getLog(filtros, limit, offset) array
+        +countLog(filtros) int
+        +historial(modulo, id) array
+    }
+
+    Controller <|-- LoginController
+    Controller <|-- RecepcionesInternasController
+    Controller <|-- DespachosInternosController
+    Controller <|-- RecepcionesExternasController
+    Controller <|-- DespachosExternosController
+    Model <|-- RecepcionInterna
+    Model <|-- DespachoInterno
+    Model <|-- RecepcionExterna
+    Model <|-- DespachoExterno
+    Model <|-- User
+    Model <|-- Auditoria
+    Model --> Database : usa
+    Controller --> Model : instancia
+    App --> Controller : despacha
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-clases', 'diagrama_clases')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-clases', 'diagrama_clases')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       ER CONCEPTUAL
+       ========================================================== -->
+  <div class="diagrama-card" id="d-er-conceptual">
+    <h2>5. Diagrama Entidad–Relación conceptual</h2>
+    <p class="titulo">Figura – Modelo Entidad–Relación conceptual del sistema Lavoro-ERP (Diseño)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+erDiagram
+    USUARIO {
+        int Id
+        string username
+        string password
+        string DocIdentidad
+        string NombresApellidos
+        int RoleId
+    }
+    ROLE {
+        int Id
+        string Nombre
+        string Descripcion
+    }
+    PRIVILEGIO {
+        int Id
+        string Nombre
+        string Descripcion
+    }
+    ROLE_PRIVILEGIO {
+        int RoleId
+        int PrivilegioId
+    }
+    RECEPCION_INTERNA {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Area
+        int Subarea
+        int Despachador
+        int Verificador
+        int MedioTransporte
+        string NLiquidacion
+        string estado
+        int creado_por
+    }
+    RECEPCION_INTERNA_PRODUCTO {
+        int Id
+        int DespachoId
+        string CodigoProducto
+        string DescripcionProducto
+        string UnidadMedida
+        decimal Cantidad
+        string Comentarios
+    }
+    DESPACHO_INTERNO {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Area
+        int Subarea
+        int Despachador
+        int Recepcionista
+        int Verificador
+        string estado
+        int creado_por
+    }
+    DESPACHO_INTERNO_PRODUCTO {
+        int Id
+        int DespachoId
+        string CodigoProducto
+        string DescripcionProducto
+        string UnidadMedida
+        decimal Cantidad
+        string Comentarios
+    }
+    RECEPCION_EXTERNA {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Origen
+        int Recepcionista
+        string Empresa
+        string RUC
+        int Chofer
+        string estado
+        int creado_por
+    }
+    RECEPCION_EXTERNA_GUIA {
+        int Id
+        int RecepcionId
+        int SerieId
+        string NumeroGuia
+    }
+    RECEPCION_EXTERNA_PRODUCTO {
+        int Id
+        int GuiaId
+        string CodigoProducto
+        decimal Cantidad
+        string UnidadMedida
+    }
+    DESPACHO_EXTERNO {
+        int Id
+        string NVale
+        date Fecha
+        time Hora
+        int Turno
+        int Destino
+        int ClienteExterno
+        int Transportista
+        int Chofer
+        int Placa
+        string estado
+        int creado_por
+    }
+    PRODUCTO {
+        int Id
+        string Codigo
+        string Descripcion
+        string UnidadMedida
+        string estado
+    }
+    AREA {
+        int Id
+        string Area
+    }
+    SUBAREA {
+        int Id
+        string Subarea
+        int AreaId
+    }
+    RESPONSABLE {
+        int Id
+        string NombresApellidos
+        string Cargo
+    }
+    TRANSPORTISTA {
+        int Id
+        string RUC
+        string Empresa
+    }
+    CHOFER {
+        int Id
+        string ApellidosNombres
+        string DNI
+        string Brevete
+    }
+
+    USUARIO }o--|| ROLE : "tiene"
+    ROLE ||--|{ ROLE_PRIVILEGIO : "tiene"
+    PRIVILEGIO ||--|{ ROLE_PRIVILEGIO : "incluye"
+    RECEPCION_INTERNA ||--|{ RECEPCION_INTERNA_PRODUCTO : "contiene"
+    DESPACHO_INTERNO ||--|{ DESPACHO_INTERNO_PRODUCTO : "contiene"
+    RECEPCION_EXTERNA ||--|{ RECEPCION_EXTERNA_GUIA : "incluye"
+    RECEPCION_EXTERNA_GUIA ||--|{ RECEPCION_EXTERNA_PRODUCTO : "detalla"
+    AREA ||--|{ SUBAREA : "tiene"
+    TRANSPORTISTA ||--|{ CHOFER : "emplea"
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-er-conceptual', 'diagrama_er_conceptual')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-er-conceptual', 'diagrama_er_conceptual')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       ER FÍSICO
+       ========================================================== -->
+  <div class="diagrama-card" id="d-er-fisico">
+    <h2>6. Diagrama Entidad–Relación físico</h2>
+    <p class="titulo">Figura – Diagrama Entidad–Relación físico de la base de datos lavorope_dblavoro (Modelo de Software)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+erDiagram
+    usuarios {
+        int Id PK
+        varchar username
+        varchar password
+        varchar DocIdentidad
+        varchar NombresApellidos
+        int RoleId FK
+        datetime creado_en
+        tinyint activo
+    }
+    roles {
+        int Id PK
+        varchar Nombre
+        text Descripcion
+    }
+    privilegios {
+        int Id PK
+        varchar Nombre
+        text Descripcion
+    }
+    roles_privilegios {
+        int RoleId FK
+        int PrivilegioId FK
+    }
+    recepciones_internas {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Area FK
+        int Subarea FK
+        int Despachador FK
+        int Verificador FK
+        int MedioTransporte FK
+        varchar NLiquidacion
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    recepciones_internas_productos {
+        int Id PK
+        int DespachoId FK
+        varchar CodigoProducto
+        varchar DescripcionProducto
+        varchar UnidadMedida
+        decimal Cantidad
+        text Comentarios
+    }
+    despachos_internos {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Area FK
+        int Subarea FK
+        int Despachador FK
+        int Recepcionista FK
+        int Verificador FK
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    despachos_internos_productos {
+        int Id PK
+        int DespachoId FK
+        varchar CodigoProducto
+        varchar DescripcionProducto
+        varchar UnidadMedida
+        decimal Cantidad
+        text Comentarios
+    }
+    recepciones_externas {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Origen FK
+        int Recepcionista FK
+        varchar Empresa
+        varchar RUC
+        int Chofer FK
+        varchar Brevete
+        text Comentarios
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    recepciones_externas_guias {
+        int Id PK
+        int RecepcionId FK
+        int SerieId FK
+        varchar NumeroGuia
+    }
+    recepciones_externas_productos {
+        int Id PK
+        int GuiaId FK
+        varchar CodigoProducto
+        varchar DescripcionProducto
+        varchar UnidadMedida
+        decimal Cantidad
+        text Comentarios
+    }
+    despachos_externos {
+        int Id PK
+        varchar NVale
+        date Fecha
+        time Hora
+        int Turno FK
+        int Destino FK
+        int ClienteExterno FK
+        int Transportista FK
+        int Chofer FK
+        int Placa FK
+        time HoraSalida
+        varchar estado
+        int creado_por FK
+        datetime creado_en
+        varchar ip_creacion
+    }
+    areas {
+        int Id PK
+        varchar Area
+    }
+    subareas {
+        int Id PK
+        varchar Subarea
+        int AreaId FK
+    }
+    responsables {
+        int Id PK
+        varchar NombresApellidos
+        varchar Cargo
+        tinyint estado
+    }
+    recepcionistas {
+        int Id PK
+        varchar NombresApellidos
+        tinyint estado
+    }
+    transportistas {
+        int Id PK
+        varchar RUC
+        varchar Empresa
+        tinyint estado
+    }
+    choferes {
+        int Id PK
+        varchar ApellidosNombres
+        varchar DNI
+        varchar Brevete
+        tinyint estado
+    }
+    placas {
+        int Id PK
+        varchar Placa
+        tinyint estado
+    }
+    productos {
+        int Id PK
+        varchar Codigo
+        varchar Descripcion
+        varchar UnidadMedida
+        tinyint estado
+    }
+    turnos {
+        int Id PK
+        varchar Turno
+    }
+    medio_transporte {
+        int Id PK
+        varchar MedioTransporte
+    }
+    origen {
+        int Id PK
+        varchar Origen
+    }
+    destino {
+        int Id PK
+        varchar Destino
+    }
+    clientes_externos {
+        int Id PK
+        varchar RazonSocial
+        varchar RUC
+    }
+    series {
+        int Id PK
+        varchar Serie
+    }
+
+    usuarios }o--|| roles : "RoleId"
+    roles ||--|{ roles_privilegios : ""
+    privilegios ||--|{ roles_privilegios : ""
+    recepciones_internas ||--|{ recepciones_internas_productos : "DespachoId"
+    despachos_internos ||--|{ despachos_internos_productos : "DespachoId"
+    recepciones_externas ||--|{ recepciones_externas_guias : "RecepcionId"
+    recepciones_externas_guias ||--|{ recepciones_externas_productos : "GuiaId"
+    areas ||--|{ subareas : "AreaId"
+    recepciones_externas_guias }o--|| series : "SerieId"
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-er-fisico', 'diagrama_er_fisico')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-er-fisico', 'diagrama_er_fisico')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       DIAGRAMA DE CONTEXTO
+       ========================================================== -->
+  <div class="diagrama-card" id="d-contexto">
+    <h2>7. Diagrama de Contexto del Sistema</h2>
+    <p class="titulo">Figura – Diagrama de contexto del sistema Lavoro-ERP (Diseño del Sistema de Información)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph LR
+    subgraph EXTERNOS["Actores Externos"]
+        A1["👤 Operador Logístico"]
+        A2["👤 Recepcionista"]
+        A3["👤 Administrador"]
+        A4["🚚 Transportista Externo<br/>(datos registrados)"]
+        A5["📦 Proveedor Externo<br/>(datos registrados)"]
+    end
+
+    subgraph SISTEMA["LAVORO-ERP"]
+        S1["Módulo Recepciones Internas"]
+        S2["Módulo Despachos Internos"]
+        S3["Módulo Recepciones Externas"]
+        S4["Módulo Despachos Externos"]
+        S5["Reportes y Exportación"]
+        S6["Auditoría / Bitácora"]
+        S7["Administración de Usuarios"]
+        S8["Tablas Maestras"]
+        S9["Base de Datos MySQL"]
+    end
+
+    A1 -->|"Registra VRI / VDI"| S1
+    A1 -->|"Registra VRI / VDI"| S2
+    A2 -->|"Registra VRE / VDE"| S3
+    A2 -->|"Registra VRE / VDE"| S4
+    A3 -->|"Gestiona usuarios y roles"| S7
+    A3 -->|"Consulta auditoría"| S6
+    A3 -->|"Gestiona maestros"| S8
+    A4 -->|"Datos del vehículo y chofer"| S3
+    A4 -->|"Datos del vehículo y chofer"| S4
+    A5 -->|"Guías de remisión"| S3
+    S1 & S2 & S3 & S4 --> S9
+    S5 -.->|"Consulta"| S9
+    S6 -.->|"Consulta"| S9
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-contexto', 'diagrama_contexto')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-contexto', 'diagrama_contexto')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       DIAGRAMA DE ACTORES
+       ========================================================== -->
+  <div class="diagrama-card" id="d-actores">
+    <h2>8. Diagrama de Actores</h2>
+    <p class="titulo">Figura – Actores principales y secundarios del sistema Lavoro-ERP y su relación con los módulos</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph LR
+    subgraph PRIN["👥 Actores Principales"]
+        ADM["🔑 Administrador"]
+        OPL["📋 Operador Logístico"]
+        REC["🚚 Recepcionista Externo"]
+        SUP["📊 Supervisor / Reportes"]
+    end
+
+    subgraph SEC["🌍 Actores Secundarios"]
+        TRA["🚛 Transportista Externo"]
+        PRO["📦 Proveedor Externo"]
+    end
+
+    subgraph SIS["LAVORO-ERP"]
+        M1["Recepción / Despacho Interno<br/>(VRI / VDI)"]
+        M2["Recepción / Despacho Externo<br/>(VRE / VDE)"]
+        M3["Reportes y Exportación Excel"]
+        M4["Administración de Usuarios,<br/>Roles y Auditoría"]
+    end
+
+    ADM -->|"gestiona"| M4
+    OPL -->|"registra"| M1
+    REC -->|"registra"| M2
+    SUP -->|"consulta"| M3
+    SUP -->|"consulta"| M4
+    TRA -->|"datos de vehículo y chofer"| M2
+    PRO -->|"guías de remisión"| M2
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-actores', 'diagrama_actores')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-actores', 'diagrama_actores')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       CASO DE USO: REGISTRAR VRI
+       ========================================================== -->
+  <div class="diagrama-card" id="d-cu-vri">
+    <h2>9. Caso de Uso – Registrar Vale de Recepción Interna (VRI)</h2>
+    <p class="titulo">Figura – Caso de uso CU001: Registrar VRI (incluye correlativo automático y auditoría)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph LR
+    subgraph ACTOR["👤 Actores"]
+        OPL["📋 Operador Logístico"]
+    end
+
+    subgraph SIS["Sistema Lavoro-ERP"]
+        UC1("Registrar Vale de<br/>Recepción Interna (VRI)")
+        GEN(["Generar correlativo<br/>automático"])
+        AUD(["Registrar en<br/>auditoría"])
+        UC1 -.->|"«include»"| GEN
+        UC1 -.->|"«include»"| AUD
+    end
+
+    OPL --> UC1
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-cu-vri', 'caso_uso_registrar_vri')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-cu-vri', 'caso_uso_registrar_vri')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       CASO DE USO: REGISTRAR VRE
+       ========================================================== -->
+  <div class="diagrama-card" id="d-cu-vre">
+    <h2>10. Caso de Uso – Registrar Vale de Recepción Externa (VRE)</h2>
+    <p class="titulo">Figura – Caso de uso CU002: Registrar VRE (incluye guías de remisión y consulta a API)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph LR
+    subgraph ACTOR2["👤 Actores"]
+        REC2["🚚 Recepcionista Externo"]
+        APIEXT["🌍 API Factiliza<br/>(DNI / Carnet)"]
+    end
+
+    subgraph SIS2["Sistema Lavoro-ERP"]
+        UC2("Registrar Vale de<br/>Recepción Externa (VRE)")
+        GEN2(["Generar correlativo<br/>automático"])
+        GUI(["Gestionar guías<br/>de remisión"])
+        CON2(["Consultar DNI /<br/>Carnet de extranjería"])
+        UC2 -.->|"«include»"| GEN2
+        UC2 -.->|"«include»"| GUI
+        UC2 -.->|"«include»"| CON2
+    end
+
+    REC2 --> UC2
+    CON2 -.->|"consulta"| APIEXT
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-cu-vre', 'caso_uso_registrar_vre')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-cu-vre', 'caso_uso_registrar_vre')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       CASO DE USO: REGISTRAR VDI
+       ========================================================== -->
+  <div class="diagrama-card" id="d-cu-vdi">
+    <h2>11. Caso de Uso – Registrar Vale de Despacho Interno (VDI)</h2>
+    <p class="titulo">Figura – Caso de uso CU003: Registrar VDI (incluye correlativo automático y auditoría)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph LR
+    subgraph ACTOR3["👤 Actores"]
+        OPL3["📋 Operador Logístico"]
+    end
+
+    subgraph SIS3["Sistema Lavoro-ERP"]
+        UC3("Registrar Vale de<br/>Despacho Interno (VDI)")
+        GEN3(["Generar correlativo<br/>automático"])
+        AUD3(["Registrar en<br/>auditoría"])
+        UC3 -.->|"«include»"| GEN3
+        UC3 -.->|"«include»"| AUD3
+    end
+
+    OPL3 --> UC3
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-cu-vdi', 'caso_uso_registrar_vdi')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-cu-vdi', 'caso_uso_registrar_vdi')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       CASO DE USO: REGISTRAR VDE
+       ========================================================== -->
+  <div class="diagrama-card" id="d-cu-vde">
+    <h2>12. Caso de Uso – Registrar Vale de Despacho Externo (VDE)</h2>
+    <p class="titulo">Figura – Caso de uso CU004: Registrar VDE (incluye correlativo automático y consulta a API)</p>
+    <div class="diagrama-container">
+      <div class="mermaid">
+graph LR
+    subgraph ACTOR4["👤 Actores"]
+        REC4["🚚 Recepcionista Externo"]
+        APIEXT4["🌍 API Factiliza<br/>(DNI / Carnet)"]
+    end
+
+    subgraph SIS4["Sistema Lavoro-ERP"]
+        UC4("Registrar Vale de<br/>Despacho Externo (VDE)")
+        GEN4(["Generar correlativo<br/>automático"])
+        CON4(["Consultar DNI /<br/>Carnet de extranjería"])
+        UC4 -.->|"«include»"| GEN4
+        UC4 -.->|"«include»"| CON4
+    end
+
+    REC4 --> UC4
+    CON4 -.->|"consulta"| APIEXT4
+      </div>
+    </div>
+    <div class="botones">
+      <button onclick="descargarPng('d-cu-vde', 'caso_uso_registrar_vde')">Descargar PNG</button>
+      <button onclick="descargarSvg('d-cu-vde', 'caso_uso_registrar_vde')">Descargar SVG</button>
+    </div>
+  </div>
+
+  <script>
+    // Convierte el SVG renderizado por Mermaid a PNG usando html-to-image
+    // (maneja correctamente los <foreignObject> que usa Mermaid para el texto)
+    function descargarPng(diagramaId, nombreArchivo) {
+      const contenedor = document.getElementById(diagramaId);
+      const svg = contenedor.querySelector('svg');
+      if (!svg) { alert('El diagrama aún no se ha renderizado. Espera unos segundos y vuelve a intentar.'); return; }
+
+      if (typeof htmlToImage === 'undefined') {
+        alert('La librería de conversión no se cargó. Verifica tu conexión a internet y recarga la página.');
+        return;
+      }
+
+      const escala = 2; // resolución 2x para buena calidad de impresión
+      const ancho = svg.getBoundingClientRect().width;
+      const alto = svg.getBoundingClientRect().height;
+
+      htmlToImage.toPng(svg, {
+        pixelRatio: escala,
+        backgroundColor: '#ffffff',
+        width: ancho,
+        height: alto
+      })
+        .then(function (dataUrl) {
+          const enlace = document.createElement('a');
+          enlace.download = nombreArchivo + '.png';
+          enlace.href = dataUrl;
+          enlace.click();
+        })
+        .catch(function (err) {
+          alert('No se pudo generar el PNG: ' + (err && err.message ? err.message : err) +
+                '\n\nPuedes usar "Descargar SVG" o captura de pantalla como alternativa.');
+        });
+    }
+
+    // Descarga el SVG del diagrama (calidad vectorial)
+    function descargarSvg(diagramaId, nombreArchivo) {
+      const contenedor = document.getElementById(diagramaId);
+      const svg = contenedor.querySelector('svg');
+      if (!svg) { alert('El diagrama aún no se ha renderizado. Espera unos segundos y vuelve a intentar.'); return; }
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const enlace = document.createElement('a');
+      enlace.download = nombreArchivo + '.svg';
+      enlace.href = url;
+      enlace.click();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 500);
+    }
+  </script>
+
+</body>
+</html>

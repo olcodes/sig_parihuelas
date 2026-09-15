@@ -287,26 +287,47 @@
     // ============================================
     
     /**
-     * Determina si el texto de una observación corresponde a un ADICIONAL.
-     * Solo los adicionales se suman al total; pendientes, deja/lleva y
-     * regularizaciones quedan excluidos.
+     * Normaliza el tipo de observación de un producto a una categoría de cálculo:
+     *   'A' = Adicional           -> Total = Cantidad + CantidadObservada
+     *   'R' = Regulariza          -> Total = CantidadObservada
+     *   'P' = Pendiente/DE/LE/PT  -> Total = Cantidad - CantidadObservada
+     *   ''  = Sin observación     -> Total = Cantidad
+     * Usa el Item de la tabla observaciones (ItemObservacionProducto) y, como
+     * respaldo, el texto detallado generado del producto.
      */
-    function esObservacionAdicional(texto) {
-        const t = String(texto || '').trim().toLowerCase();
-        return t === 'a' || t.includes('adici');
+    function normalizarTipoObservacion(item, texto) {
+        const it = String(item || '').trim().toUpperCase();
+        if (it === 'A' || it.indexOf('ADICI') !== -1) return 'A';
+        if (it === 'R' || it.indexOf('REGULAR') !== -1) return 'R';
+        if (it === 'P' || it.indexOf('PEND') !== -1 ||
+            it === 'DE' || it.indexOf('DEJA') !== -1 ||
+            it === 'LE' || it.indexOf('LLEVA') !== -1 ||
+            it === 'PT' || it.indexOf('PRODUCTO TERMINADO') !== -1) return 'P';
+
+        // Respaldo: derivar el tipo desde el texto detallado del producto
+        const t = String(texto || '').trim().toUpperCase();
+        if (!t) return '';
+        if (t.indexOf('ADICIONAL') === 0 || t.indexOf('ADICI') !== -1) return 'A';
+        if (t.indexOf('REGULARIZA') === 0 || t.indexOf('REGULAR') !== -1) return 'R';
+        if (t.indexOf('DEJA') === 0 || t.indexOf('LLEVA') === 0 ||
+            t.indexOf('PENDIENTE') === 0 || t.indexOf('PT ') === 0 ||
+            t.indexOf('PEND') !== -1) return 'P';
+        return '';
     }
 
-    // Observaciones tipo pendiente (P, DEJA, LLEVA, PT): restan del total
-    function esObservacionPendiente(texto) {
-        const t = String(texto || '').trim().toLowerCase();
-        return t === 'p' || t.includes('pend') || t === 'de' || t.includes('deja') ||
-               t === 'le' || t.includes('lleva') || t === 'pt' || t.includes('producto terminado');
-    }
-
-    // Observación Regulariza: el total neto equivale a la cantidad regularizada
-    function esObservacionRegulariza(texto) {
-        const t = String(texto || '').trim().toLowerCase();
-        return t === 'r' || t.includes('regular');
+    /**
+     * Cantidad NETA de una línea de producto, replicando la fórmula de
+     * RecepcionExternaProducto::calcularTotal() y del CONSOLIDADO de la vista previa.
+     */
+    function netoLineaProducto(row) {
+        const cantidad = parseFloat(row.CantidadProducto) || 0;
+        const cantObs = parseFloat(row.CantidadObsProducto) || 0;
+        if (cantObs <= 0) return cantidad;
+        const tipo = normalizarTipoObservacion(row.ItemObservacionProducto, row.TextoObservacionesProducto);
+        if (tipo === 'A') return cantidad + cantObs;
+        if (tipo === 'R') return cantObs;
+        if (tipo === 'P') return cantidad - cantObs;
+        return cantidad;
     }
     
     /**
@@ -314,80 +335,51 @@
      * (Vale+Guia+Producto), manteniendo los 4 productos especificos como columnas.
      * Si una guia tiene 2 productos, se generan 2 filas; la cantidad de cada fila
      * va en la columna de su producto y 0 en las demas.
-     * Los ADICIONALES de observacion se suman a la fila de su producto; si el
-     * producto del adicional no tiene linea propia, se genera su propia fila.
+     * Cada columna y el Total Gral. usan la cantidad NETA del producto (aplica su
+     * observacion: Adicional suma, Pendiente/DE/LE/PT resta, Regulariza reemplaza).
      */
     function separarPorGuiaYProducto(datosPlanos) {
-        // Mapa de guias: claveGuia -> { filaRef, productos: {codigo: fila}, adicionales: {codigo: cant} }
+        // Mapa de guias: claveGuia -> { filaRef, productos: { codigo: fila } }
         const guias = {};
         const ordenGuias = [];
-        
+
         datosPlanos.forEach(row => {
             const claveGuia = (row.NVale || '') + '|' + (row.NumeroGuia || '');
-            
+
             if (!guias[claveGuia]) {
-                guias[claveGuia] = { filaRef: row, productos: {}, adicionales: {}, pendientes: {}, regularizaciones: {} };
+                guias[claveGuia] = { filaRef: row, productos: {} };
                 ordenGuias.push(claveGuia);
             }
-            
-            // Observación de la guía: se procesa UNA SOLA VEZ por guia (los campos
-            // de observacion de la guia se repiten en cada fila de producto, por eso
-            // se guarda solo la primera vez que se detecta para no duplicar el total).
-            const cantObs = parseFloat(row.CantidadObservada) || 0;
-            const codigoObs = String(row.CodigoProductoObs || '').trim();
-            const obsEsAdicional = esObservacionAdicional(row.TextoObservaciones) || esObservacionAdicional(row.ObservacionTexto);
-            const obsEsPendiente = esObservacionPendiente(row.TextoObservaciones) || esObservacionPendiente(row.ObservacionTexto);
-            const obsEsRegulariza = esObservacionRegulariza(row.TextoObservaciones) || esObservacionRegulariza(row.ObservacionTexto);
-            if (cantObs > 0 && CODIGOS_PRODUCTO.includes(codigoObs)) {
-                if (obsEsAdicional) {
-                    if (!(codigoObs in guias[claveGuia].adicionales)) {
-                        guias[claveGuia].adicionales[codigoObs] = cantObs;
-                    }
-                } else if (obsEsPendiente) {
-                    if (!(codigoObs in guias[claveGuia].pendientes)) {
-                        guias[claveGuia].pendientes[codigoObs] = cantObs;
-                    }
-                } else if (obsEsRegulariza) {
-                    if (!(codigoObs in guias[claveGuia].regularizaciones)) {
-                        guias[claveGuia].regularizaciones[codigoObs] = cantObs;
-                    }
-                }
-            }
-            
-            // Linea de producto: crear/acumular la fila del producto (solo si esta en la lista)
+
+            // Solo interesan los 4 productos que son columnas fijas del reporte
             const codigo = String(row.CodigoProducto || '').trim();
-            if (CODIGOS_PRODUCTO.includes(codigo)) {
-                if (!guias[claveGuia].productos[codigo]) {
-                    guias[claveGuia].productos[codigo] = crearFilaBase(row, codigo);
-                }
-                guias[claveGuia].productos[codigo].cantidades[codigo] += parseFloat(row.CantidadProducto) || 0;
+            if (!CODIGOS_PRODUCTO.includes(codigo)) return;
+
+            // Cantidad NETA de ESTA linea de producto (aplica su propia observacion,
+            // ya sea Adicional, Pendiente/DE/LE/PT o Regulariza)
+            const neto = netoLineaProducto(row);
+
+            if (!guias[claveGuia].productos[codigo]) {
+                guias[claveGuia].productos[codigo] = crearFilaBase(row, codigo);
+            }
+            const fila = guias[claveGuia].productos[codigo];
+            fila.cantidades[codigo] += neto;
+
+            // Conservar el texto de observacion del producto para la columna Observaciones
+            if (row.TextoObservacionesProducto) {
+                fila.TextoObservacionesProducto = row.TextoObservacionesProducto;
             }
         });
-        
+
         // Convertir a array plano: una fila por producto de cada guia (en orden de aparicion)
         const resultado = [];
         ordenGuias.forEach(claveGuia => {
             const guia = guias[claveGuia];
-            
-            // 1) Filas de productos con linea propia
             Object.keys(guia.productos).forEach(codigo => {
-                const fila = guia.productos[codigo];
-                // Sumar el adicional del mismo producto si existe
-                if (guia.adicionales[codigo]) {
-                    fila.cantidades[codigo] += guia.adicionales[codigo];
-                }
-                resultado.push(construirFilaReporte(fila, netoProducto(guia, fila, codigo)));
-            });
-            
-            // 2) Adicionales de productos sin linea propia -> generar su propia fila
-            Object.keys(guia.adicionales).forEach(codigoObs => {
-                if (guia.productos[codigoObs]) return; // ya sumado en la fila del producto
-                const fila = crearFilaBase(guia.filaRef, codigoObs);
-                fila.cantidades[codigoObs] += guia.adicionales[codigoObs];
-                resultado.push(construirFilaReporte(fila, netoProducto(guia, fila, codigoObs)));
+                resultado.push(construirFilaReporte(guia.productos[codigo]));
             });
         });
-        
+
         return resultado;
     }
     
@@ -419,30 +411,18 @@
     }
     
     /**
-     * Total neto de un producto dentro de su guía, usando la misma fórmula del
-     * CONSOLIDADO DE PRODUCTOS de la vista previa:
-     *   Total = Cant GR (+ Adicional) - Pendiente
-     * En observación Regulariza, el total neto es la cantidad regularizada.
-     */
-    function netoProducto(guia, fila, codigo) {
-        let neto = (fila.cantidades[codigo] || 0);
-        if (guia.pendientes && guia.pendientes[codigo]) neto -= guia.pendientes[codigo];
-        if (guia.regularizaciones && guia.regularizaciones[codigo]) neto = guia.regularizaciones[codigo];
-        return neto;
-    }
-
-    /**
      * Convierte una fila interna al formato plano que consume la grilla y la exportacion.
+     * Las columnas de producto ya contienen la cantidad NETA (ver netoLineaProducto).
      */
-    function construirFilaReporte(fila, totalNeto) {
+    function construirFilaReporte(fila) {
         const p1 = fila.cantidades['19003031'];
         const p2 = fila.cantidades['19002924'];
         const p3 = fila.cantidades['19003730'];
         const p4 = fila.cantidades['19003521'];
-        
-        // Total Gral. con fórmula neta; fallback a la suma de columnas si no llega neto
-        const totalGral = (typeof totalNeto !== 'undefined' && totalNeto !== null) ? totalNeto : (p1 + p2 + p3 + p4);
-        
+
+        // Total Gral. = suma de las cantidades NETAS de los 4 productos
+        const totalGral = p1 + p2 + p3 + p4;
+
         return {
             Fecha: fila.Fecha,
             Turno: fila.Turno,

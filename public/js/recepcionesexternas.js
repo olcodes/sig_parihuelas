@@ -1796,29 +1796,39 @@
         }
         
         // === AUTO-POBLAR TEXTAREA DE OBSERVACIONES ===
-        // Poblar el textarea #observaciones con el contenido generado automaticamente de la grilla,
-        // solo si el usuario NO lo ha editado manualmente.
+        // El textarea #observaciones es un campo DERIVADO de la grilla, pero el usuario
+        // puede agregarle texto manualmente. Reglas:
+        //   1) Vacío o sin modificar      => se escribe el texto generado.
+        //   2) Con texto agregado al final => se regenera la base y se CONSERVA el sufijo.
+        //   3) Contenido reescrito/mezclado por el usuario => se respeta tal cual.
+        // Nunca se vacía automáticamente (evita perder líneas PT sin sub-estado DE/LE).
         try {
             var obsTa = document.getElementById('observaciones');
             if (obsTa) {
                 var textoGenerado = observacionesTexto.length > 0 ? observacionesTexto.join('\n') : '';
-                // Inicializar flag de edicion manual si no existe
-                if (typeof window._observacionesEditado === 'undefined') {
-                    window._observacionesEditado = false;
-                    // Listener para detectar cuando el usuario edita manualmente
-                    obsTa.addEventListener('input', function() {
-                        window._observacionesEditado = true;
-                    });
+                var ultimoGenerado = (window._ultimoTextoObservacionesGenerado || '');
+                var valorActual = obsTa.value || '';
+
+                // Detectar texto agregado manualmente al final del bloque generado
+                var sufijoManual = '';
+                if (ultimoGenerado !== '' && valorActual.indexOf(ultimoGenerado) === 0) {
+                    sufijoManual = valorActual.substring(ultimoGenerado.length);
                 }
-                // Auto-poblar solo si el usuario no ha editado manualmente.
-                // IMPORTANTE: nunca vaciar automáticamente. Si la regeneración no produce
-                // texto (p. ej. PT sin sub-estado DE/LE disponible en el DOM) se conserva el
-                // valor existente para no perder las líneas de observación del vale.
-                if (!window._observacionesEditado) {
-                    var textoPrevio = (obsTa.value || '').trim();
-                    if (textoGenerado !== '' || textoPrevio === '') {
-                        obsTa.value = textoGenerado;
-                    }
+
+                var sinEdicionManual = (valorActual === ultimoGenerado) || (sufijoManual !== '');
+
+                if (valorActual.trim() === '') {
+                    // Campo vacío: se pobla con el texto generado por la grilla
+                    obsTa.value = textoGenerado;
+                } else if (sinEdicionManual && textoGenerado !== '') {
+                    // Regenerar la base conservando el texto agregado por el usuario
+                    obsTa.value = textoGenerado + sufijoManual;
+                }
+                // En cualquier otro caso NO se toca: se respeta lo escrito por el usuario
+
+                // Registrar la última base generada (solo si hay texto) para la próxima comparación
+                if (textoGenerado !== '') {
+                    window._ultimoTextoObservacionesGenerado = textoGenerado;
                 }
             }
         } catch(e) {}
@@ -3025,8 +3035,6 @@
                         if (inputCantObs) { inputCantObs.value = ''; inputCantObs.setAttribute('disabled', 'disabled'); }
                     }
                 } catch (e) {}
-                // Resetear flag de edicion manual para que el textarea de observaciones se auto-poblar
-                window._observacionesEditado = false;
                 calcularTotales();
                 actualizarVistaPrevia();
                 // Gestión dinámica de filas: nueva fila al llenar cant GR, quitar filas vacías al borrar
@@ -3093,8 +3101,6 @@
                             if (inputCantObs) inputCantObs.removeAttribute('disabled');
                             this.parentElement.remove();
                             mostrarPtBadge('DE');
-                            // Resetear flag de edicion manual para que el textarea de observaciones se auto-poblar
-                            window._observacionesEditado = false;
                             calcularTotales();
                             actualizarVistaPrevia();
                         });
@@ -3108,8 +3114,6 @@
                             if (inputCantObs) inputCantObs.removeAttribute('disabled');
                             this.parentElement.remove();
                             mostrarPtBadge('LE');
-                            // Resetear flag de edicion manual para que el textarea de observaciones se auto-poblar
-                            window._observacionesEditado = false;
                             calcularTotales();
                             actualizarVistaPrevia();
                         });
@@ -3132,8 +3136,6 @@
                         }
                     }
                 } catch (e) {}
-                // Resetear flag de edicion manual para que el textarea de observaciones se auto-poblar
-                window._observacionesEditado = false;
                 calcularTotales();
                 actualizarVistaPrevia();
             });
@@ -3175,8 +3177,6 @@
                         setTimeout(function(){ try { input.classList.remove('input-error'); } catch(e) {} }, 1200);
                     }
                 } catch (e) {}
-                // Resetear flag de edicion manual para que el textarea de observaciones se auto-poblar
-                window._observacionesEditado = false;
                 calcularTotales();
                 actualizarVistaPrevia();
             });
@@ -4203,6 +4203,13 @@
             if (filas.length === 0) {
                 throw new Error('Debe agregar al menos una guía');
             }
+
+            // Texto del campo Observaciones del vale y líneas generadas por producto:
+            // el campo es un espejo, línea por línea, de los productos observados (mismo
+            // orden que la grilla), por lo que se usa para asignar a cada producto su texto.
+            const observacionesVale = (document.getElementById('observaciones')?.value || '').trim();
+            const lineasGeneradas = [];
+            const productosConLinea = [];
             
             filas.forEach((fila, idx) => {
                 const numeroGuia = obtenerNumeroGuiaDesdeFila(fila);
@@ -4350,18 +4357,25 @@
                         } catch(e) {}
                     }
 
-                    guia.productos.push({
+                    // Sub-estado PT (DE / LE) persistido explícitamente en BD
+                    const productoSerializado = {
                         codigo: codigoProducto,
                         descripcion: descripcion,
                         unidadMedida: unidadMedida,
                         cantidad: cantidad,
                         columna: colIndex,
                         observacion: observacionProducto,
-                        // Sub-estado PT (DE / LE) persistido explícitamente en BD
                         ptSubtipo: ptDeLeSeleccionado || null,
                         cantidadObservada: cantidadObservadaProducto,
                         textoObservaciones: obsTextProducto
-                    });
+                    };
+                    guia.productos.push(productoSerializado);
+
+                    // Se guarda la referencia para poder asignarle su línea del campo Observaciones
+                    if (obsTextProducto) {
+                        lineasGeneradas.push(obsTextProducto);
+                        productosConLinea.push(productoSerializado);
+                    }
                 });
                 
                 // Asignar la observación consolidada a nivel de guía
@@ -4373,7 +4387,56 @@
                 
                 data.guias.push(guia);
             });
-            
+
+            // ASIGNAR A CADA PRODUCTO SU LÍNEA DEL CAMPO OBSERVACIONES
+            // El campo Observaciones es un espejo, línea por línea, de los productos observados
+            // (mismo orden que la grilla). Se asigna a cada producto SU línea, conservando lo
+            // que el usuario haya editado o agregado dentro de ella. Solo si no hay
+            // correspondencia fiable se propaga el texto completo a todos los productos.
+            if (observacionesVale !== '' && lineasGeneradas.length > 0) {
+                const lineasVale = observacionesVale.split('\n').map(function(l) { return l.trim(); });
+                const generadas = lineasGeneradas.map(function(l) { return (l || '').trim(); });
+                const usados = lineasVale.map(function() { return false; });
+                const asignacion = new Array(generadas.length).fill(null);
+                let mapeoOk = true;
+
+                if (lineasVale.length === generadas.length) {
+                    // Mismo número de líneas: asignación por posición (caso típico, incluye
+                    // cuando el usuario edita el contenido de una línea)
+                    for (let i = 0; i < generadas.length; i++) {
+                        asignacion[i] = lineasVale[i];
+                        usados[i] = true;
+                    }
+                } else {
+                    // Buscar cada línea generada dentro del texto del campo Observaciones
+                    for (let i = 0; i < generadas.length; i++) {
+                        const idx = lineasVale.indexOf(generadas[i]);
+                        if (idx >= 0 && !usados[idx]) {
+                            asignacion[i] = lineasVale[idx];
+                            usados[idx] = true;
+                        } else {
+                            mapeoOk = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (mapeoOk && asignacion.every(function(a) { return a !== null; })) {
+                    // Líneas sueltas escritas por el usuario (notas del vale): se anexan a cada producto
+                    const sobrantes = lineasVale.filter(function(l, i) { return !usados[i] && l !== ''; });
+                    productosConLinea.forEach(function(p, i) {
+                        p.textoObservaciones = asignacion[i] + (sobrantes.length ? ('\n' + sobrantes.join('\n')) : '');
+                    });
+                } else {
+                    // Sin correspondencia fiable: se propaga el texto completo a cada producto
+                    data.guias.forEach(function(g) {
+                        (g.productos || []).forEach(function(p) {
+                            p.textoObservaciones = observacionesVale;
+                        });
+                    });
+                }
+            }
+
             if (data.guias.length === 0) {
                 throw new Error('No se encontraron guías válidas para guardar');
             }

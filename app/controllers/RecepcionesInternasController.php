@@ -218,7 +218,9 @@ class RecepcionesInternasController extends Controller
                         'CodigoProducto' => $prod['codigo'] ?? null,
                         'DescripcionProducto' => $prod['producto'] ?? null,
                         'UnidadMedida' => $prod['unidadMedida'] ?? '',
-                        'Cantidad' => $prod['cantidad'] ?? null,
+                        // Validar cantidad numérica (igual que en guardar()) para evitar
+                        // que un string vacío '' rompa la columna numérica Cantidad
+                        'Cantidad' => isset($prod['cantidad']) && is_numeric($prod['cantidad']) ? $prod['cantidad'] : 0,
                         'Comentarios' => $prod['comentarios'] ?? ''
                     ];
                     $productoModel->registrar($productoData);

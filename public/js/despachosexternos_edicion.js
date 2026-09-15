@@ -2731,44 +2731,58 @@
             });
     }
 
-    // Inicializar modo edición y botones para adjuntar listeners (seguro si falla)
-    try { setupBotones(); } catch (e) { console.warn('[Edición] setupBotones init falló:', e); }
-    // FIX: invocar setupProductos() para clonar btnAgregar/btnQuitar/btnLimpiar y reemplazar
-    // los listeners del script compartido (despachosexternos.js) por la lógica de edición.
-    // Sin esto, al hacer clic en "Actualizar" se ejecutaba la validación del script compartido
-    // ("Debe seleccionar un producto y especificar la cantidad.") porque la fila seleccionada
-    // aún no se cargaba en los controles.
-    try { setupProductos(); } catch (e) { console.warn('[Edición] setupProductos init falló:', e); }
-    try { setupModoEdicion(); } catch (e) { console.warn('[Edición] setupModoEdicion init falló:', e); }
-    // FIX: invocar setupTurnoAutomatico para adjuntar el listener del checkbox "Manual"
-    // (sin esto, el checkbox no limpiaba los estilos !important y el dropdown de turno quedaba bloqueado)
-    try { setupTurnoAutomatico(); } catch (e) { console.warn('[Edición] setupTurnoAutomatico init falló:', e); }
-    // Configurar campos sincronizados (Destino-RUC, Chofer-Brevete, Transportista-RUC, Placas-Constancias)
-    try { setupCamposSincronizados(); } catch (e) { console.warn('[Edición] setupCamposSincronizados init falló:', e); }
+    // FIX (mismo patrón que despachosinternos_edicion.js): diferir la inicialización a
+    // DOMContentLoaded. Este script se carga DESPUÉS de despachosexternos.js, así que si
+    // inicializamos de forma síncrona clonamos #btnAgregar/#btnQuitar/#btnLimpiar/#btnGuardar
+    // ANTES de que el script compartido enlace sus listeners; luego el compartido captura el
+    // botón ya clonado y le agrega un SEGUNDO handler. Ese doble listener ejecutaba el flujo
+    // de "nuevo producto" del script compartido (con su propio editIndex=null), lo que
+    // duplicaba la fila en la grilla y borraba los campos. Al diferir a DOMContentLoaded
+    // garantizamos ser los últimos en enlazar y el clonado sí elimina los handlers externos.
+    function initEdicionExternos() {
+        // Inicializar modo edición y botones para adjuntar listeners (seguro si falla)
+        try { setupBotones(); } catch (e) { console.warn('[Edición] setupBotones init falló:', e); }
+        // invocar setupProductos() para clonar btnAgregar/btnQuitar/btnLimpiar y reemplazar
+        // los listeners del script compartido (despachosexternos.js) por la lógica de edición.
+        try { setupProductos(); } catch (e) { console.warn('[Edición] setupProductos init falló:', e); }
+        try { setupModoEdicion(); } catch (e) { console.warn('[Edición] setupModoEdicion init falló:', e); }
+        // invocar setupTurnoAutomatico para adjuntar el listener del checkbox "Manual"
+        // (sin esto, el checkbox no limpiaba los estilos !important y el dropdown de turno quedaba bloqueado)
+        try { setupTurnoAutomatico(); } catch (e) { console.warn('[Edición] setupTurnoAutomatico init falló:', e); }
+        // Configurar campos sincronizados (Destino-RUC, Chofer-Brevete, Transportista-RUC, Placas-Constancias)
+        try { setupCamposSincronizados(); } catch (e) { console.warn('[Edición] setupCamposSincronizados init falló:', e); }
 
-    // FIX (dropdown de turno no desplegaba en modo Manual): listener de CAPTURA global que
-    // garantiza que el clic sobre el select de turno (con el checkbox Manual activo) abra el
-    // dropdown, incluso si el handler nativo de Choices u otros listeners no responden.
-    // Se ejecuta ANTES que cualquier otro listener (fase de captura) y solo actúa cuando:
-    //   - #turno no está deshabilitado (Manual marcado / edición habilitada)
-    //   - el clic ocurre dentro del contenedor .choices del turno
-    // Si el dropdown ya está abierto no fuerza nada, para no romper el toggle de cierre.
-    try {
-        document.addEventListener('click', function(evt) {
-            try {
-                var selT = document.getElementById('turno');
-                if (!selT) return;
-                if (selT.disabled) return; // solo cuando el turno está habilitado (Manual)
-                var contT = selT.closest('.choices');
-                if (!contT) return;
-                if (!contT.contains(evt.target)) return; // solo clic sobre el select de turno
-                if (!contT.classList.contains('is-open')) {
-                    forzarAperturaTurnoManual();
-                    var ciT = (window.choicesInstances && window.choicesInstances['turno']) || null;
-                    if (ciT && typeof ciT.showDropdown === 'function') { try { ciT.showDropdown(); } catch(e){} }
-                }
-            } catch(e) { /* ignore */ }
-        }, true);
-    } catch(e) { console.warn('[Edición] Error adjuntando listener de captura para turno', e); }
+        // FIX (dropdown de turno no desplegaba en modo Manual): listener de CAPTURA global que
+        // garantiza que el clic sobre el select de turno (con el checkbox Manual activo) abra el
+        // dropdown, incluso si el handler nativo de Choices u otros listeners no responden.
+        // Se ejecuta ANTES que cualquier otro listener (fase de captura) y solo actúa cuando:
+        //   - #turno no está deshabilitado (Manual marcado / edición habilitada)
+        //   - el clic ocurre dentro del contenedor .choices del turno
+        // Si el dropdown ya está abierto no fuerza nada, para no romper el toggle de cierre.
+        try {
+            document.addEventListener('click', function(evt) {
+                try {
+                    var selT = document.getElementById('turno');
+                    if (!selT) return;
+                    if (selT.disabled) return; // solo cuando el turno está habilitado (Manual)
+                    var contT = selT.closest('.choices');
+                    if (!contT) return;
+                    if (!contT.contains(evt.target)) return; // solo clic sobre el select de turno
+                    if (!contT.classList.contains('is-open')) {
+                        forzarAperturaTurnoManual();
+                        var ciT = (window.choicesInstances && window.choicesInstances['turno']) || null;
+                        if (ciT && typeof ciT.showDropdown === 'function') { try { ciT.showDropdown(); } catch(e){} }
+                    }
+                } catch(e) { /* ignore */ }
+            }, true);
+        } catch(e) { console.warn('[Edición] Error adjuntando listener de captura para turno', e); }
+    }
+
+    // Diferir a DOMContentLoaded salvo que el DOM ya esté listo (mismo patrón que Internos)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initEdicionExternos);
+    } else {
+        initEdicionExternos();
+    }
 
 })();

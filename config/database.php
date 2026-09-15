@@ -29,6 +29,9 @@ class Database
     // ──────────────────────────────────────────
     
     // 🏠 DESARROLLO LOCAL (PHP built-in server)
+    //   ⚠️ TEMPORAL (explicación del sistema) → BD LOCAL de WAMP
+    //   host='localhost', user='root', pass=''
+    //   Config remota anterior (comentada):
     //   host='204.93.224.230', user='lavorope_adm', pass='7Jb4TcRpX120'
     
     // 🌐 HOSTING (BD local en el servidor)
@@ -63,7 +66,9 @@ class Database
             );
             
             // Configuraciones adicionales para MySQL
-            $this->connection->exec("SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'");
+            // NOTA: 'NO_AUTO_CREATE_USER' se eliminó en MySQL 8.0.11+.
+            // Se quita para compatibilidad con MySQL local (WAMP 8.x).
+            $this->connection->exec("SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION'");
             $this->connection->exec("SET time_zone = '-05:00'"); // Zona horaria Perú
             
         } catch (PDOException $e) {
@@ -103,11 +108,18 @@ class Database
         );
         
         if ($isLocal) {
-            // 🏠 Entorno LOCAL → conectar a BD remota vía IP
+            // 🏠 Entorno LOCAL → conectar a BD remota vía IP (desarrollo)
             $this->host = 'localhost';
             $this->dbName = 'lavorope_dblavoro';
             $this->username = 'lavorope_adm';
             $this->password = '7Jb4TcRpX120';
+
+            // ── Config LOCAL de WAMP (comentada, usar solo para explicación) ──
+            // $this->host = 'localhost';
+            // $this->dbName = 'lavorope_dblavoro';
+            // $this->username = 'root';
+            // $this->password = '';
+            // ──────────────────────────────────────────────────────────────────
         } else {
             // 🌐 Entorno HOSTING → conectar a MySQL local del servidor
             $this->host = 'localhost';
@@ -187,12 +199,13 @@ class Database
     public function testConnection()
     {
         try {
-            $stmt = $this->connection->query("SELECT 1 as test, NOW() as current_time");
+            // NOTA: 'current_time' es palabra reservada en MySQL 8.x, se usa 'server_time'
+            $stmt = $this->connection->query("SELECT 1 as test, NOW() as server_time");
             $result = $stmt->fetch();
             return [
                 'success' => true,
                 'test_value' => $result['test'],
-                'server_time' => $result['current_time'],
+                'server_time' => $result['server_time'],
                 'host' => $this->host,
                 'database' => $this->dbName,
                 'user' => $this->username

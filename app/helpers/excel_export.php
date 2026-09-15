@@ -9,11 +9,6 @@
  * Limpia todos los buffers y prepara los headers
  */
 function prepareForFileExport() {
-    // Desactivar la compresión gzip del servidor (zlib.output_compression) para que
-    // no altere el contenido binario del archivo en hostings con PHP-FPM/gzip activo.
-    @ini_set('zlib.output_compression', 'Off');
-    @ini_set('output_buffering', 'Off');
-
     // Limpiar TODOS los buffers de salida existentes
     while (ob_get_level()) {
         ob_end_clean();
@@ -24,10 +19,10 @@ function prepareForFileExport() {
         throw new Exception("No se puede exportar: headers ya enviados en $file línea $line");
     }
     
-    // IMPORTANTE: NO llamar fastcgi_finish_request() aquí.
-    // Esa función sólo existe en PHP-FPM/FastCGI (típico del hosting) y cierra la
-    // conexión HTTP ANTES de que se escriba el binario, corrompiendo/truncando la
-    // descarga del Excel. En local (Apache + mod_php) no existe y por eso funcionaba.
+    // Limpiar cualquier output que pueda haber
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    }
 }
 
 /**

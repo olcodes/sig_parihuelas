@@ -1353,6 +1353,7 @@ class ReportesController extends Controller {
                     $row['ObservacionProducto'] = '';
                     $row['TextoObservacionesProducto'] = '';
                     $row['TotalProducto'] = 0;
+                    $row['ItemObservacionProducto'] = '';
                     $row['Id'] = $valeIdOriginal; // Preservar ID del vale
                     $datosPlanos[] = $row;
                 } else {
@@ -1371,6 +1372,7 @@ class ReportesController extends Controller {
                             $filaPlana['ObservacionProducto'] = '';
                             $filaPlana['TextoObservacionesProducto'] = '';
                             $filaPlana['TotalProducto'] = 0;
+                            $filaPlana['ItemObservacionProducto'] = '';
                             $datosPlanos[] = $filaPlana;
                         } else {
                             foreach ($productos as $prod) {
@@ -1384,6 +1386,7 @@ class ReportesController extends Controller {
                                 $filaPlana['ObservacionProducto'] = $prod['Observacion'] ?? '';
                                 $filaPlana['TextoObservacionesProducto'] = $prod['TextoObservaciones'] ?? '';
                                 $filaPlana['TotalProducto'] = $prod['Total'] ?? 0;
+                                $filaPlana['ItemObservacionProducto'] = $prod['ItemObservacionProducto'] ?? '';
                                 $datosPlanos[] = $filaPlana;
                             }
                         }
@@ -2132,7 +2135,14 @@ class ReportesController extends Controller {
                     } elseif ($field === '__ADICIONAL__') {
                         $valor = $adicionalRow > 0 ? $adicionalRow : '';
                     } elseif ($field === '__OBS_DETALLE__') {
-                        $valor = $obsDetalle;
+                        // Observación por PRODUCTO tal como se guardó en
+                        // recepciones_externas_productos.TextoObservaciones (incluye lo que el
+                        // usuario agrega a mano en el campo Observaciones del vale).
+                        // Si el producto no tiene texto, se usa el detalle regenerado.
+                        $valor = trim((string)($row['TextoObservacionesProducto'] ?? ''));
+                        if ($valor === '') {
+                            $valor = $obsDetalle;
+                        }
                     } elseif ($colDef['calc'] !== null) {
                         $valor = $colDef['calc']($row);
                     } elseif ($field !== null) {
