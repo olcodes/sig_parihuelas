@@ -2779,7 +2779,7 @@ class ReportesController extends Controller {
                 error_log('Insertando datos en Despachos Internos');
                 $this->insertarDatosDespachosInternos($spreadsheet, $filtros);
             } else {
-                $this->eliminarHoja($spreadsheet, 'Despachos Internos');
+                $this->limpiarHoja($spreadsheet, 'Despachos Internos');
             }
             gc_collect_cycles();
 
@@ -2788,7 +2788,7 @@ class ReportesController extends Controller {
                 error_log('Insertando datos en Despachos Externos');
                 $this->insertarDatosDespachosExternos($spreadsheet, $filtros);
             } else {
-                $this->eliminarHoja($spreadsheet, 'Despachos Externos');
+                $this->limpiarHoja($spreadsheet, 'Despachos Externos');
             }
             gc_collect_cycles();
 
@@ -2797,34 +2797,30 @@ class ReportesController extends Controller {
                 error_log('Insertando datos en Recepciones Internas');
                 $this->insertarDatosRecepcionesInternas($spreadsheet, $filtros);
             } else {
-                $this->eliminarHoja($spreadsheet, 'Recepciones Internas');
+                $this->limpiarHoja($spreadsheet, 'Recepciones Internas');
             }
             gc_collect_cycles();
 
-            // === Recepciones Externas ===
-            // La consulta se ejecuta SIEMPRE porque alimenta las hojas fijas
-            // 'Picking' y 'Recepciones Ext.', que salen en todas las exportaciones.
-            $modelRecepcionExterna = $this->model('RecepcionExterna');
-            $resultRecepcionExterna = $modelRecepcionExterna->getReporte($filtros, 10000, 0);
-            $recepcionesExt = $resultRecepcionExterna['data'];
-            unset($modelRecepcionExterna);
-            unset($resultRecepcionExterna);
-            error_log('Recepciones Externas - Total registros (una sola consulta): ' . count($recepcionesExt));
-
-            // Hoja principal 'Recepciones Externas': solo si el módulo está marcado
+            // === Recepciones Externas (una sola consulta reutilizada en 3 hojas) ===
             if (in_array('recepcion_externa', $modulos)) {
-                error_log('Insertando datos en Recepciones Externas');
+                error_log('Insertando datos en Recepciones Externas / Picking / Recepciones Ext.');
+                $modelRecepcionExterna = $this->model('RecepcionExterna');
+                $resultRecepcionExterna = $modelRecepcionExterna->getReporte($filtros, 10000, 0);
+                $recepcionesExt = $resultRecepcionExterna['data'];
+                unset($modelRecepcionExterna);
+                unset($resultRecepcionExterna);
+                error_log('Recepciones Externas - Total registros (una sola consulta): ' . count($recepcionesExt));
                 $this->insertarDatosRecepcionesExternas($spreadsheet, $recepcionesExt);
                 gc_collect_cycles();
+                $this->insertarDatosPicking($spreadsheet, $recepcionesExt);
+                gc_collect_cycles();
+                $this->insertarDatosRecepcionesExt($spreadsheet, $recepcionesExt);
+                unset($recepcionesExt);
             } else {
-                $this->eliminarHoja($spreadsheet, 'Recepciones Externas');
+                $this->limpiarHoja($spreadsheet, 'Recepciones Externas');
+                $this->limpiarHoja($spreadsheet, 'Picking');
+                $this->limpiarHoja($spreadsheet, 'Recepciones Ext.');
             }
-
-            // Hojas fijas: Picking y Recepciones Ext. SIEMPRE
-            $this->insertarDatosPicking($spreadsheet, $recepcionesExt);
-            gc_collect_cycles();
-            $this->insertarDatosRecepcionesExt($spreadsheet, $recepcionesExt);
-            unset($recepcionesExt);
             gc_collect_cycles();
 
             $spreadsheet->setActiveSheetIndex(0);
@@ -2890,9 +2886,79 @@ class ReportesController extends Controller {
                 }
             }
             
-            // El freeze pane de la hoja 'Despachos Externos' se aplica vía API
-            // ($sheet->freezePane('A2')) en insertarDatosDespachosExternos(), ya que
-            // las hojas se eliminan dinámicamente según los módulos seleccionados.
+            // PASO 4.5: Asegurar que la hoja 'Despachos Externos' tenga pane/selection (freeze) DESPUÃƒâ€°S de restaurar pivots
+            $zip = new \ZipArchive();
+            if ($zip->open($tempPath) === true) {
+                $sheetPath = 'xl/worksheets/sheet2.xml';
+                $content = $zip->getFromName($sheetPath);
+                if ($content !== false) {
+                    error_log('Inyectando freeze pane en Despachos Externos (DOM)...');
+                    libxml_use_internal_errors(true);
+                    $doc = new \DOMDocument();
+                    $loaded = $doc->loadXML($content, LIBXML_NONET);
+                    if ($loaded) {
+                        $ns = $doc->documentElement->namespaceURI;
+                        $sheetViews = $doc->getElementsByTagName('sheetView');
+                        if ($sheetViews->length > 0) {
+                            foreach ($sheetViews as $sv) {
+                                // Eliminar nodos pane y selection existentes
+                                $toRemove = [];
+                                foreach ($sv->childNodes as $child) {
+                                    if ($child->nodeType === XML_ELEMENT_NODE && in_array($child->localName, ['pane','selection'])) {
+                                        $toRemove[] = $child;
+                                    }
+                                }
+                                foreach ($toRemove as $n) {
+                                    $sv->removeChild($n);
+                                }
+
+                                // Crear pane y selection con el mismo namespace si existe
+                                if ($ns) {
+                                    $pane = $doc->createElementNS($ns, 'pane');
+                                    $selection = $doc->createElementNS($ns, 'selection');
+                                } else {
+                                    $pane = $doc->createElement('pane');
+                                    $selection = $doc->createElement('selection');
+                                }
+                                $pane->setAttribute('ySplit', '1');
+                                $pane->setAttribute('topLeftCell', 'A2');
+                                $pane->setAttribute('activePane', 'bottomLeft');
+                                $pane->setAttribute('state', 'frozen');
+
+                                $selection->setAttribute('pane', 'bottomLeft');
+                                $selection->setAttribute('activeCell', 'A2');
+                                $selection->setAttribute('sqref', 'A2');
+
+                                // Insertar pane y selection al final de sheetView
+                                $sv->appendChild($pane);
+                                $sv->appendChild($selection);
+                            }
+
+                            $newContent = $doc->saveXML();
+                            if ($zip->locateName($sheetPath) !== false) {
+                                $zip->deleteName($sheetPath);
+                            }
+                            $zip->addFromString($sheetPath, $newContent);
+                            error_log('Ã¢Å“â€œ Freeze pane inyectado exitosamente en sheet2.xml (DOM)');
+                        } else {
+                            error_log('Ã¢Å“â€” No se encontrÃƒÂ³ <sheetView> en sheet2.xml (DOM)');
+                        }
+                    } else {
+                        $errors = libxml_get_errors();
+                        foreach ($errors as $err) {
+                            error_log('XML error al cargar sheet2.xml: ' . trim($err->message));
+                        }
+                        libxml_clear_errors();
+                        error_log('Ã¢Å“â€” No se pudo parsear sheet2.xml con DOMDocument');
+                    }
+                    libxml_use_internal_errors(false);
+                } else {
+                    error_log('Ã¢Å“â€” No se pudo leer sheet2.xml del archivo');
+                }
+                $zip->close();
+            } else {
+                error_log('Ã¢Å“â€” No se pudo abrir el archivo temporal para inyectar pane');
+            }
             
             // Liberar memoria de arrays de XMLs
             unset($pivotFiles);
@@ -2968,23 +3034,6 @@ class ReportesController extends Controller {
             }
         } catch (Exception $e) {
             error_log('limpiarHoja - ' . $nombreHoja . ': ' . $e->getMessage());
-        }
-    }
-    
-    /**
-     * Elimina por completo una hoja del libro (por nombre).
-     * Se usa para quitar las hojas de los módulos no seleccionados en la exportación.
-     */
-    private function eliminarHoja($spreadsheet, $nombreHoja) {
-        try {
-            $sheet = $spreadsheet->getSheetByName($nombreHoja);
-            if (!$sheet) return;
-            $index = $spreadsheet->getIndex($sheet);
-            if ($index !== null && $spreadsheet->getSheetCount() > 1) {
-                $spreadsheet->removeSheetByIndex($index);
-            }
-        } catch (Exception $e) {
-            error_log('eliminarHoja - ' . $nombreHoja . ': ' . $e->getMessage());
         }
     }
     
@@ -3562,10 +3611,7 @@ class ReportesController extends Controller {
         unset($despachos);
         
         error_log('Despachos Externos - Filas insertadas: ' . ($filaExcel - 2));
-
-        // Freeze pane en la fila de cabecera
-        try { $sheet->freezePane('A2'); } catch (Exception $__fp) { error_log('freezePane Despachos Externos: ' . $__fp->getMessage()); }
-
+        
         // Ajustar columnas
         foreach (range('A', 'W') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
@@ -3664,18 +3710,6 @@ class ReportesController extends Controller {
         
         error_log('Insertando ' . count($recepciones) . ' recepciones externas');
         
-        // Cabeceras de la hoja (orden solicitado)
-        $cabeceras = [
-            'A1' => 'N° VALE',        'B1' => 'FECHA',      'C1' => 'HORA',        'D1' => 'TURNO',
-            'E1' => 'ORIGEN',         'F1' => 'EMPRESA',    'G1' => 'RUC',         'H1' => 'CHOFER',
-            'I1' => 'BREVETE',        'J1' => 'N° GUÍA',    'K1' => 'N° DOC. REF.',
-            'L1' => 'CÓDIGO PRODUCTO','M1' => 'DESCRIPCIÓN','N1' => 'CANTIDAD',    'O1' => 'CANT OBS',
-            'P1' => 'TOTAL',          'Q1' => 'OBSERVACIÓN','R1' => 'COMENTARIOS'
-        ];
-        foreach ($cabeceras as $celda => $valor) {
-            $sheet->setCellValue($celda, $valor);
-        }
-
         // Insertar datos desde fila 2
         $filaExcel = 2;
         if (!empty($recepciones)) {
@@ -3696,18 +3730,20 @@ class ReportesController extends Controller {
                                 $sheet->setCellValue('H' . $filaExcel, $recepcion['Chofer'] ?? '');
                                 $sheet->setCellValue('I' . $filaExcel, $recepcion['Brevete'] ?? '');
                                 $sheet->setCellValue('J' . $filaExcel, $guia['NumeroGuia'] ?? '');
-                                $sheet->setCellValue('K' . $filaExcel, $guia['NumeroDocRef'] ?? '');
-                                $sheet->setCellValue('L' . $filaExcel, $producto['CodigoProducto'] ?? '');
-                                $sheet->setCellValue('M' . $filaExcel, $producto['DescripcionProducto'] ?? '');
-                                $sheet->setCellValue('N' . $filaExcel, $producto['Cantidad'] ?? '');
-                                $sheet->setCellValue('O' . $filaExcel, $producto['CantidadObservada'] ?? 0);
+                                // OBSERVACIÓN: mostrar el detalle del producto (ej. "DEJA 20 UND DEL CODIGO ... GUIA ...");
+                                // si el producto no tiene detalle, usar la observación general de la guía
+                                $obsDetalle = trim($producto['TextoObservaciones'] ?? '');
+                                $sheet->setCellValue('K' . $filaExcel, $obsDetalle !== '' ? $obsDetalle : ($guia['ObservacionTexto'] ?? ''));
+                                $sheet->setCellValue('L' . $filaExcel, $guia['CodigoProductoObs'] ?? '');
+                                $sheet->setCellValue('M' . $filaExcel, $guia['CantidadObservada'] ?? '');
+                                $sheet->setCellValue('N' . $filaExcel, $producto['CodigoProducto'] ?? '');
+                                $sheet->setCellValue('O' . $filaExcel, $producto['DescripcionProducto'] ?? '');
                                 $totalNeto = isset($producto['Total']) && $producto['Total'] !== '' && $producto['Total'] !== null
                                     ? $producto['Total']
                                     : ($producto['Cantidad'] ?? '');
                                 $sheet->setCellValue('P' . $filaExcel, $totalNeto);
-                                $obsDetalle = trim($producto['TextoObservaciones'] ?? '');
-                                $sheet->setCellValue('Q' . $filaExcel, $obsDetalle !== '' ? $obsDetalle : ($guia['ObservacionTexto'] ?? ''));
-                                $sheet->setCellValue('R' . $filaExcel, $recepcion['Comentarios'] ?? '');
+                                $sheet->setCellValue('Q' . $filaExcel, $producto['UnidadMedida'] ?? '');
+                                $sheet->setCellValue('R' . $filaExcel, $recepcion['Estado'] ?? '');
                                 $filaExcel++;
                             }
                         }
