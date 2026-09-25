@@ -2046,7 +2046,7 @@ class ReportesController extends Controller {
                 ['label' => 'DESCRIPCIÓN',    'field' => 'DescripcionProducto','dataField' => 'DescripcionProducto','calc' => null],
                 ['label' => 'CANTIDAD',       'field' => null,              'dataField' => 'CantidadProducto',     'calc' => function($row) { return floatval($row['CantidadProducto'] ?? 0); }],
                 ['label' => 'TIPO OBS',       'field' => 'ObservacionTexto','dataField' => 'TextoObservaciones',   'calc' => null],
-                ['label' => 'CANT OBS',       'field' => 'CantidadObservada','dataField' => 'CantidadObsProducto', 'calc' => null],
+                ['label' => 'CANT OBS',       'field' => 'CantidadObsProducto','dataField' => 'CantidadObsProducto', 'calc' => null],
                 ['label' => 'TOTAL',          'field' => null,              'dataField' => 'TotalProducto',        'calc' => function($row) { return floatval($row['TotalProducto'] ?? floatval($row['CantidadProducto'] ?? 0)); }],
                 ['label' => 'OBSERVACIÓN',    'field' => '__OBS_DETALLE__', 'dataField' => 'TextoObservacionesProducto','calc' => null],
                 ['label' => 'COMENTARIOS',    'field' => 'Comentarios',      'dataField' => 'Comentarios',          'calc' => null],
@@ -3051,7 +3051,16 @@ class ReportesController extends Controller {
                         $sheet->setCellValue('H' . $filaExcel, $despacho['Recepcionista'] ?? '');
                         $sheet->setCellValue('I' . $filaExcel, $despacho['Verificador'] ?? '');
                         $sheet->setCellValue('J' . $filaExcel, $producto['Codigo'] ?? '');
-                        $sheet->setCellValue('K' . $filaExcel, $producto['Producto'] ?? '');
+                        $descripcionProducto = (string)($producto['Producto'] ?? '');
+                        $codigoProducto = trim((string)($producto['Codigo'] ?? ''));
+                        if ($descripcionProducto !== '' && $codigoProducto !== '') {
+                            $descripcionProducto = preg_replace(
+                                '/^\s*' . preg_quote($codigoProducto, '/') . '\s*(?:[-:]\s*)?/i',
+                                '',
+                                $descripcionProducto
+                            );
+                        }
+                        $sheet->setCellValue('K' . $filaExcel, $descripcionProducto);
                         $sheet->setCellValue('L' . $filaExcel, $producto['UnidadMedida'] ?? '');
                         $sheet->setCellValue('M' . $filaExcel, $producto['Cantidad'] ?? '');
                         $sheet->setCellValue('N' . $filaExcel, $producto['Comentarios'] ?? '');
@@ -3204,7 +3213,16 @@ class ReportesController extends Controller {
                         $sheet->setCellValue('H' . $filaExcel, $recepcion['MedioTransporte'] ?? '');
                         $sheet->setCellValue('I' . $filaExcel, $recepcion['Verificador'] ?? '');
                         $sheet->setCellValue('J' . $filaExcel, $producto['Codigo'] ?? '');
-                        $sheet->setCellValue('K' . $filaExcel, $producto['Producto'] ?? '');
+                        $descripcionProducto = (string)($producto['Producto'] ?? '');
+                        $codigoProducto = trim((string)($producto['Codigo'] ?? ''));
+                        if ($descripcionProducto !== '' && $codigoProducto !== '') {
+                            $descripcionProducto = preg_replace(
+                                '/^\s*' . preg_quote($codigoProducto, '/') . '\s*(?:[-:]\s*)?/i',
+                                '',
+                                $descripcionProducto
+                            );
+                        }
+                        $sheet->setCellValue('K' . $filaExcel, $descripcionProducto);
                         $sheet->setCellValue('L' . $filaExcel, $producto['UnidadMedida'] ?? '');
                         $sheet->setCellValue('M' . $filaExcel, $producto['Cantidad'] ?? '');
                         $sheet->setCellValue('N' . $filaExcel, $producto['Comentarios'] ?? '');
@@ -3347,7 +3365,16 @@ class ReportesController extends Controller {
                         $sheet->setCellValue('H' . $filaExcel, $despacho['Recepcionista'] ?? '');
                         $sheet->setCellValue('I' . $filaExcel, $despacho['Verificador'] ?? '');
                         $sheet->setCellValue('J' . $filaExcel, $producto['Codigo'] ?? '');
-                        $sheet->setCellValue('K' . $filaExcel, $producto['Producto'] ?? '');
+                        $descripcionProducto = (string)($producto['Producto'] ?? '');
+                        $codigoProducto = trim((string)($producto['Codigo'] ?? ''));
+                        if ($descripcionProducto !== '' && $codigoProducto !== '') {
+                            $descripcionProducto = preg_replace(
+                                '/^\s*' . preg_quote($codigoProducto, '/') . '\s*(?:[-:]\s*)?/i',
+                                '',
+                                $descripcionProducto
+                            );
+                        }
+                        $sheet->setCellValue('K' . $filaExcel, $descripcionProducto);
                         $sheet->setCellValue('L' . $filaExcel, $producto['UnidadMedida'] ?? '');
                         $sheet->setCellValue('M' . $filaExcel, $producto['Cantidad'] ?? '');
                         $sheet->setCellValue('N' . $filaExcel, $producto['Comentarios'] ?? '');
@@ -3620,7 +3647,16 @@ class ReportesController extends Controller {
                         $sheet->setCellValue('H' . $filaExcel, $recepcion['MedioTransporte'] ?? '');
                         $sheet->setCellValue('I' . $filaExcel, $recepcion['Verificador'] ?? '');
                         $sheet->setCellValue('J' . $filaExcel, $producto['Codigo'] ?? '');
-                        $sheet->setCellValue('K' . $filaExcel, $producto['Producto'] ?? '');
+                        $descripcionProducto = (string)($producto['Producto'] ?? '');
+                        $codigoProducto = trim((string)($producto['Codigo'] ?? ''));
+                        if ($descripcionProducto !== '' && $codigoProducto !== '') {
+                            $descripcionProducto = preg_replace(
+                                '/^\s*' . preg_quote($codigoProducto, '/') . '\s*(?:[-:]\s*)?/i',
+                                '',
+                                $descripcionProducto
+                            );
+                        }
+                        $sheet->setCellValue('K' . $filaExcel, $descripcionProducto);
                         $sheet->setCellValue('L' . $filaExcel, $producto['UnidadMedida'] ?? '');
                         $sheet->setCellValue('M' . $filaExcel, $producto['Cantidad'] ?? '');
                         $sheet->setCellValue('N' . $filaExcel, $producto['Comentarios'] ?? '');
@@ -3667,14 +3703,16 @@ class ReportesController extends Controller {
         // Cabeceras de la hoja (orden solicitado)
         $cabeceras = [
             'A1' => 'N° VALE',        'B1' => 'FECHA',      'C1' => 'HORA',        'D1' => 'TURNO',
-            'E1' => 'ORIGEN',         'F1' => 'EMPRESA',    'G1' => 'RUC',         'H1' => 'CHOFER',
-            'I1' => 'BREVETE',        'J1' => 'N° GUÍA',    'K1' => 'N° DOC. REF.',
-            'L1' => 'CÓDIGO PRODUCTO','M1' => 'DESCRIPCIÓN','N1' => 'CANTIDAD',    'O1' => 'CANT OBS',
-            'P1' => 'TOTAL',          'Q1' => 'OBSERVACIÓN','R1' => 'COMENTARIOS'
+            'E1' => 'ORIGEN',         'F1' => 'RECEPCIONISTA', 'G1' => 'EMPRESA', 'H1' => 'RUC',
+            'I1' => 'CHOFER',        'J1' => 'BREVETE',    'K1' => 'N° GUÍA',    'L1' => 'N° DOC. REF.',
+            'M1' => 'CÓDIGO PRODUCTO','N1' => 'DESCRIPCIÓN','O1' => 'CANTIDAD',    'P1' => 'CANT OBS',
+            'Q1' => 'TOTAL',          'R1' => 'OBSERVACIÓN','S1' => 'COMENTARIOS'
         ];
         foreach ($cabeceras as $celda => $valor) {
             $sheet->setCellValue($celda, $valor);
         }
+        // S1 es columna nueva (no existe en la plantilla): copiar el formato de R1
+        $sheet->duplicateStyle($sheet->getStyle('R1'), 'S1');
 
         // Insertar datos desde fila 2
         $filaExcel = 2;
@@ -3691,23 +3729,24 @@ class ReportesController extends Controller {
                                 $sheet->setCellValue('C' . $filaExcel, $recepcion['Hora'] ?? '');
                                 $sheet->setCellValue('D' . $filaExcel, $recepcion['Turno'] ?? '');
                                 $sheet->setCellValue('E' . $filaExcel, $recepcion['Origen'] ?? '');
-                                $sheet->setCellValue('F' . $filaExcel, $recepcion['Empresa'] ?? '');
-                                $sheet->setCellValue('G' . $filaExcel, $recepcion['RUC'] ?? '');
-                                $sheet->setCellValue('H' . $filaExcel, $recepcion['Chofer'] ?? '');
-                                $sheet->setCellValue('I' . $filaExcel, $recepcion['Brevete'] ?? '');
-                                $sheet->setCellValue('J' . $filaExcel, $guia['NumeroGuia'] ?? '');
-                                $sheet->setCellValue('K' . $filaExcel, $guia['NumeroDocRef'] ?? '');
-                                $sheet->setCellValue('L' . $filaExcel, $producto['CodigoProducto'] ?? '');
-                                $sheet->setCellValue('M' . $filaExcel, $producto['DescripcionProducto'] ?? '');
-                                $sheet->setCellValue('N' . $filaExcel, $producto['Cantidad'] ?? '');
-                                $sheet->setCellValue('O' . $filaExcel, $producto['CantidadObservada'] ?? 0);
+                                $sheet->setCellValue('F' . $filaExcel, $recepcion['Recepcionista'] ?? '');
+                                $sheet->setCellValue('G' . $filaExcel, $recepcion['Empresa'] ?? '');
+                                $sheet->setCellValue('H' . $filaExcel, $recepcion['RUC'] ?? '');
+                                $sheet->setCellValue('I' . $filaExcel, $recepcion['Chofer'] ?? '');
+                                $sheet->setCellValue('J' . $filaExcel, $recepcion['Brevete'] ?? '');
+                                $sheet->setCellValue('K' . $filaExcel, $guia['NumeroGuia'] ?? '');
+                                $sheet->setCellValue('L' . $filaExcel, $guia['NumeroDocRef'] ?? '');
+                                $sheet->setCellValue('M' . $filaExcel, $producto['CodigoProducto'] ?? '');
+                                $sheet->setCellValue('N' . $filaExcel, $producto['DescripcionProducto'] ?? '');
+                                $sheet->setCellValue('O' . $filaExcel, $producto['Cantidad'] ?? '');
+                                $sheet->setCellValue('P' . $filaExcel, $producto['CantidadObservada'] ?? 0);
                                 $totalNeto = isset($producto['Total']) && $producto['Total'] !== '' && $producto['Total'] !== null
                                     ? $producto['Total']
                                     : ($producto['Cantidad'] ?? '');
-                                $sheet->setCellValue('P' . $filaExcel, $totalNeto);
-                                $obsDetalle = trim($producto['TextoObservaciones'] ?? '');
-                                $sheet->setCellValue('Q' . $filaExcel, $obsDetalle !== '' ? $obsDetalle : ($guia['ObservacionTexto'] ?? ''));
-                                $sheet->setCellValue('R' . $filaExcel, $recepcion['Comentarios'] ?? '');
+                                $sheet->setCellValue('Q' . $filaExcel, $totalNeto);
+                                // Solo mostrar el detalle si el propio producto lo tiene; sin respaldo con la observación general de la guía
+                                $sheet->setCellValue('R' . $filaExcel, trim($producto['TextoObservaciones'] ?? ''));
+                                $sheet->setCellValue('S' . $filaExcel, $recepcion['Comentarios'] ?? '');
                                 $filaExcel++;
                             }
                         }
@@ -3722,7 +3761,7 @@ class ReportesController extends Controller {
         error_log('Recepciones Externas - Filas insertadas: ' . ($filaExcel - 2));
         
         // Ajustar columnas
-        foreach (range('A', 'R') as $col) {
+        foreach (range('A', 'S') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
     }

@@ -5183,10 +5183,18 @@
             // ASIGNAR A CADA PRODUCTO SU LÍNEA DEL CAMPO OBSERVACIONES
             // El campo Observaciones es un espejo, línea por línea, de los productos observados
             // (mismo orden que la grilla). Se asigna a cada producto SU línea, conservando lo
-            // que el usuario haya editado o agregado dentro de ella. Solo si no hay
-            // correspondencia fiable se propaga el texto completo a todos los productos.
+            // que el usuario haya editado o agregado dentro de ella. Si no hay correspondencia
+            // fiable, cada producto conserva su propio texto generado (no se replica el texto
+            // completo del vale en todos los productos).
             if (observacionesVale !== '' && lineasGeneradas.length > 0) {
-                const lineasVale = observacionesVale.split('\n').map(function(l) { return l.trim(); });
+                const normalizarObs = function(l) {
+                    return (l || '').toString().replace(/\s+/g, ' ').trim().toUpperCase();
+                };
+                // Se descartan las líneas vacías del textarea para no desbalancear el mapeo
+                // (p. ej. un Enter al final que agrega una línea en blanco).
+                const lineasVale = observacionesVale.split('\n')
+                    .map(function(l) { return l.trim(); })
+                    .filter(function(l) { return l !== ''; });
                 const generadas = lineasGeneradas.map(function(l) { return (l || '').trim(); });
                 const usados = lineasVale.map(function() { return false; });
                 const asignacion = new Array(generadas.length).fill(null);
@@ -5200,9 +5208,16 @@
                         usados[i] = true;
                     }
                 } else {
-                    // Buscar cada línea generada dentro del texto del campo Observaciones
+                    // Buscar cada línea generada dentro del texto del campo Observaciones.
+                    // Primero por igualdad exacta y luego por igualdad normalizada
+                    // (mayúsculas y espacios colapsados) para tolerar ediciones manuales.
                     for (let i = 0; i < generadas.length; i++) {
-                        const idx = lineasVale.indexOf(generadas[i]);
+                        let idx = lineasVale.indexOf(generadas[i]);
+                        if (idx < 0) {
+                            idx = lineasVale.findIndex(function(l, j) {
+                                return !usados[j] && normalizarObs(l) === normalizarObs(generadas[i]);
+                            });
+                        }
                         if (idx >= 0 && !usados[idx]) {
                             asignacion[i] = lineasVale[idx];
                             usados[idx] = true;
@@ -5220,12 +5235,16 @@
                         p.textoObservaciones = asignacion[i] + (sobrantes.length ? ('\n' + sobrantes.join('\n')) : '');
                     });
                 } else {
-                    // Sin correspondencia fiable: se propaga el texto completo a cada producto
-                    data.guias.forEach(function(g) {
-                        (g.productos || []).forEach(function(p) {
-                            p.textoObservaciones = observacionesVale;
-                        });
-                    });
+                    // Sin correspondencia fiable: NO se propaga el texto completo a todos los
+                    // productos (eso duplicaba las observaciones en la exportación). Cada
+                    // producto conserva el texto generado para él; las líneas que no pudieron
+                    // emparejarse se conservan en Comentarios para no perder notas manuales.
+                    const noEmparejadas = lineasVale.filter(function(l, i) { return !usados[i] && l !== ''; });
+                    if (noEmparejadas.length) {
+                        data.comentarios = data.comentarios
+                            ? (data.comentarios + '\n' + noEmparejadas.join('\n'))
+                            : noEmparejadas.join('\n');
+                    }
                 }
             }
             
