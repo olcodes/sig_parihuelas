@@ -4445,14 +4445,8 @@
                 } else {
                     // Sin correspondencia fiable: NO se propaga el texto completo a todos los
                     // productos (eso duplicaba las observaciones en la exportación). Cada
-                    // producto conserva el texto generado para él; las líneas que no pudieron
-                    // emparejarse se conservan en Comentarios para no perder notas manuales.
-                    const noEmparejadas = lineasVale.filter(function(l, i) { return !usados[i] && l !== ''; });
-                    if (noEmparejadas.length) {
-                        data.comentarios = data.comentarios
-                            ? (data.comentarios + '\n' + noEmparejadas.join('\n'))
-                            : noEmparejadas.join('\n');
-                    }
+                    // producto conserva el texto generado para él; las líneas del textarea
+                    // ya quedan guardadas íntegras en el campo Observaciones del vale.
                 }
             }
 

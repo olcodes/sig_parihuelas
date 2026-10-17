@@ -1,8 +1,22 @@
+<?php
+$puedeSubirFirma = isset($_SESSION['privilegios']) && in_array('editar_usuarios', $_SESSION['privilegios']);
+?>
 <div class="container-fluid px-0" style="padding-bottom:0;">
     <div class="d-flex align-items-center mb-4">
         <i class="bi bi-people display-6 text-primary me-2"></i>
         <h2 class="mb-0 fw-bold" style="letter-spacing:0.5px; color:#1a237e;">Mantenimiento de Usuarios</h2>
     </div>
+
+    <!-- Mensaje flash -->
+    <?php if (!empty($_SESSION['usuarios_msg'])): ?>
+        <?php $msg = $_SESSION['usuarios_msg']; unset($_SESSION['usuarios_msg']); ?>
+        <div class="alert alert-<?= $msg['tipo'] ?> alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-<?= $msg['tipo'] === 'success' ? 'check-circle' : 'exclamation-triangle' ?> me-2"></i>
+            <?= $msg['texto'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body py-2 px-3">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 flex-nowrap">
@@ -72,6 +86,7 @@
                             <th>Doc. Identidad</th>
                             <th>Nombre y Apellidos</th>
                             <th>Rol</th>
+                            <th class="text-center">Firma</th>
                             <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
@@ -83,13 +98,28 @@
                             <td><?= htmlspecialchars($u['DocIdentidad']) ?></td>
                             <td><?= htmlspecialchars($u['NombresApellidos']) ?></td>
                             <td><?= htmlspecialchars($u['RolNombre'] ?? '') ?></td>
+                            <td class="text-center">
+                                <?php $firmaImg = BASE_URL . '/img/' . strtoupper(preg_replace('/[^A-Za-z0-9._-]/', '', $u['username'])) . '.png'; ?>
+                                <div class="d-inline-flex align-items-center gap-2">
+                                    <span class="text-muted small" id="sinFirma<?= $u['Id'] ?>">Sin firma</span>
+                                    <img src="<?= htmlspecialchars($firmaImg) ?>" alt="Firma de <?= htmlspecialchars($u['username']) ?>"
+                                         style="height:42px; max-width:110px; object-fit:contain; display:none;"
+                                         onload="this.style.display='inline-block'; document.getElementById('sinFirma<?= $u['Id'] ?>').style.display='none';"
+                                         onerror="this.style.display='none';">
+                                    <?php if ($puedeSubirFirma): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-success px-2" data-bs-toggle="modal" data-bs-target="#modalFirma<?= $u['Id'] ?>" title="Subir firma">
+                                        <i class="bi bi-file-earmark-arrow-up"></i>
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                             <td class="text-end">
                                 <div class="d-inline-flex align-items-center gap-1">
                                     <?php $editUrl = app_url('usuarios/edit/' . $u['Id']); ?>
                                     <a href="<?= $editUrl ?>" class="btn btn-sm btn-outline-primary px-2" title="Editar"><i class="bi bi-pencil"></i></a>
                                     <button type="button" class="btn btn-sm btn-outline-danger px-2" data-bs-toggle="modal" data-bs-target="#modalEliminar<?= $u['Id'] ?>" title="Eliminar"><i class="bi bi-trash"></i></button>
                                 </div>
-                                <!-- Modal -->
+                                <!-- Modal eliminar -->
                                 <div class="modal fade" id="modalEliminar<?= $u['Id'] ?>" tabindex="-1" aria-labelledby="modalLabel<?= $u['Id'] ?>" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -120,3 +150,59 @@
     </div>
 </div>
 
+<?php if ($puedeSubirFirma): ?>
+<!-- Modales de carga de firma -->
+<?php foreach ($usuarios as $u): ?>
+<div class="modal fade" id="modalFirma<?= $u['Id'] ?>" tabindex="-1" aria-labelledby="modalFirmaLabel<?= $u['Id'] ?>" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form method="post" action="<?= app_url('usuarios/uploadFirma/' . $u['Id']) ?>" enctype="multipart/form-data">
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <i class="bi bi-file-earmark-arrow-up me-2 fs-4"></i>
+                    <h5 class="modal-title fw-bold" id="modalFirmaLabel<?= $u['Id'] ?>">Subir firma — <?= htmlspecialchars($u['username']) ?></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="text-muted mb-3">
+                        Seleccione la imagen de la firma de <strong><?= htmlspecialchars($u['NombresApellidos']) ?></strong>.
+                        <br>Formatos permitidos: <strong>PNG, JPG/JPEG o WebP</strong> (máx. 3 MB).
+                    </p>
+                    <div class="mb-3">
+                        <img id="previewFirma<?= $u['Id'] ?>" src="" alt="Vista previa de la firma"
+                             style="max-height:120px; max-width:100%; object-fit:contain; display:none;"
+                             class="border rounded p-2 mb-2">
+                    </div>
+                    <input type="file" class="form-control" name="firma" id="firmaInput<?= $u['Id'] ?>"
+                           accept="image/png,image/jpeg,image/webp" data-preview="previewFirma<?= $u['Id'] ?>" required>
+                </div>
+                <div class="modal-footer border-0 d-flex justify-content-between gap-2 pb-3">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal"><i class="bi bi-x-circle me-1"></i>Cancelar</button>
+                    <button type="submit" class="btn btn-success px-4 fw-bold"><i class="bi bi-cloud-arrow-up me-1"></i>Subir firma</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endforeach; ?>
+
+<script>
+// Vista previa de la firma seleccionada antes de subir
+document.querySelectorAll('input[type="file"][data-preview]').forEach(function(input) {
+    input.addEventListener('change', function() {
+        const preview = document.getElementById(this.getAttribute('data-preview'));
+        if (!preview) return;
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'inline-block';
+            };
+            reader.readAsDataURL(this.files[0]);
+        } else {
+            preview.src = '';
+            preview.style.display = 'none';
+        }
+    });
+});
+</script>
+<?php endif; ?>

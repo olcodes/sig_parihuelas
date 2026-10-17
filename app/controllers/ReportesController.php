@@ -2136,13 +2136,10 @@ class ReportesController extends Controller {
                         $valor = $adicionalRow > 0 ? $adicionalRow : '';
                     } elseif ($field === '__OBS_DETALLE__') {
                         // Observación por PRODUCTO tal como se guardó en
-                        // recepciones_externas_productos.TextoObservaciones (incluye lo que el
-                        // usuario agrega a mano en el campo Observaciones del vale).
-                        // Si el producto no tiene texto, se usa el detalle regenerado.
+                        // recepciones_externas_productos.TextoObservaciones.
+                        // Sin respaldo con la observación general de la guía
+                        // (igual que el reporte consolidado).
                         $valor = trim((string)($row['TextoObservacionesProducto'] ?? ''));
-                        if ($valor === '') {
-                            $valor = $obsDetalle;
-                        }
                     } elseif ($colDef['calc'] !== null) {
                         $valor = $colDef['calc']($row);
                     } elseif ($field !== null) {

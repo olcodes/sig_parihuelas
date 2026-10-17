@@ -215,6 +215,94 @@ class UsuariosController extends Controller
         $this->edit($id);
     }
 
+    /**
+     * Sube la firma de un usuario desde el explorador de archivos.
+     * La imagen se guarda como PNG en public/img/<USUARIO>.png,
+     * que es la ruta que usan las vistas previas e impresiones de los vales.
+     */
+    public function uploadFirma($id)
+    {
+        $this->requirePrivilegio('editar_usuarios');
+
+        $usuario = $this->userModel->getById($id);
+        if (!$usuario) {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'El usuario solicitado no existe.'];
+            redirect('/usuarios');
+        }
+
+        // Nombre de archivo normalizado (sin caracteres especiales) y en mayúsculas
+        $nombre = strtoupper(preg_replace('/[^A-Za-z0-9._-]/', '', $usuario['username'] ?? ''));
+        if ($nombre === '') {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'El nombre de usuario no permite generar un nombre de archivo válido.'];
+            redirect('/usuarios');
+        }
+
+        $archivo = $_FILES['firma'] ?? null;
+        if (!$archivo || !isset($archivo['tmp_name']) || $archivo['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'Debe seleccionar un archivo de firma.'];
+            redirect('/usuarios');
+        }
+
+        if ($archivo['size'] <= 0 || $archivo['size'] > 3145728) {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'La firma debe pesar menos de 3 MB.'];
+            redirect('/usuarios');
+        }
+
+        // Validación por contenido real (magic bytes), no solo por extensión
+        $info = @getimagesize($archivo['tmp_name']);
+        if ($info === false) {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'El archivo seleccionado no es una imagen válida.'];
+            redirect('/usuarios');
+        }
+
+        $mime = $info['mime'] ?? '';
+        $permitidos = ['image/png', 'image/jpeg', 'image/webp'];
+        if (!in_array($mime, $permitidos, true)) {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'Solo se permiten imágenes PNG, JPG/JPEG o WebP.'];
+            redirect('/usuarios');
+        }
+
+        $directorio = dirname(__DIR__, 2) . '/public/img';
+        $destino = $directorio . '/' . $nombre . '.png';
+
+        // Si es PNG directo se mueve tal cual; en caso contrario se normaliza a PNG
+        $contenido = file_get_contents($archivo['tmp_name']);
+        if ($contenido === false) {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'No se pudo leer el archivo subido.'];
+            redirect('/usuarios');
+        }
+
+        if ($mime === 'image/png') {
+            $guardado = @file_put_contents($destino, $contenido);
+        } else {
+            $guardado = false;
+            if (function_exists('imagecreatefromstring')) {
+                $img = @imagecreatefromstring($contenido);
+                if ($img) {
+                    imagealphablending($img, false);
+                    imagesavealpha($img, true);
+                    $guardado = @imagepng($img, $destino);
+                    imagedestroy($img);
+                }
+            }
+            if (!$guardado) {
+                $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'No se pudo convertir la imagen a PNG. Suba un archivo PNG.'];
+                redirect('/usuarios');
+            }
+        }
+
+        if (!$guardado) {
+            $_SESSION['usuarios_msg'] = ['tipo' => 'danger', 'texto' => 'Ocurrió un error al guardar la firma.'];
+            redirect('/usuarios');
+        }
+
+        $_SESSION['usuarios_msg'] = [
+            'tipo' => 'success',
+            'texto' => 'Firma del usuario <strong>' . htmlspecialchars($usuario['username']) . '</strong> cargada correctamente.'
+        ];
+        redirect('/usuarios');
+    }
+
     public function delete($id)
     {
         $this->requirePrivilegio('eliminar_usuarios');
