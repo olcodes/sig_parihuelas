@@ -85,8 +85,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         row.setAttribute('data-cantidad', prod.Cantidad || '');
                         row.setAttribute('data-unidadmedida', prod.UnidadMedida || '');
                         row.setAttribute('data-comentarios', prod.Comentarios || '');
-                            const prodId = prod.Id || prod.ProductoId || prod.IdProducto || prod.Producto || '';
-                            row.setAttribute('data-producto-id', prodId || '');
+                            // El id del producto maestro se busca por CÓDIGO + DESCRIPCIÓN.
+                            // prod.Id es el id de la fila de recepciones_internas_productos (NO el id del producto maestro).
+                            const maestro = (window.productosData || []).find(p => {
+                                const cod = String(p.Codigo ?? '').trim();
+                                const desc = String(p.Producto ?? '').trim();
+                                return cod === String(prod.CodigoProducto ?? '').trim() && desc === String(prod.DescripcionProducto ?? '').trim();
+                            });
+                            row.setAttribute('data-producto-id', maestro ? String(maestro.Id) : '');
                 row.innerHTML = '<td style="padding:4px;border:1px solid #333;width:6%;"></td>' +
                     '<td style="padding:4px;border:1px solid #333;width:20%;word-break:break-word;white-space:normal;overflow-wrap:break-word;">' + (prod.CodigoProducto || '') + '</td>' +
                     '<td style="padding:4px;border:1px solid #333;width:40%;word-break:break-word;white-space:normal;overflow-wrap:break-word;">' + (prod.DescripcionProducto || '') + '</td>' +
@@ -803,24 +809,57 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Seleccionar el producto correcto
-        // Priorizar coincidencia por id (data-producto-id en la fila). Si no existe,
-        // caer a la coincidencia por texto/código como respaldo.
+        // Seleccionar el producto correcto.
+        // IMPORTANTE: data-producto-id puede ser el id del producto maestro (correcto cuando la
+        // fila se agregó desde el select) o estar vacío (cuando el vale se cargó desde el backend,
+        // que no guarda el id del producto maestro). La fuente más fiable es el TEXTO de la fila.
         if (producto.options && producto.options.length > 0) {
             const productOptions = Array.from(producto.options);
             const prodIdFromRow = row.getAttribute('data-producto-id') || '';
+            const normalizar = s => String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
             let opt = null;
 
+            // 1) Por id (solo si la fila lo trae correctamente desde el select)
             if (prodIdFromRow) {
                 opt = productOptions.find(o => String(o.value) === String(prodIdFromRow));
             }
-
-            // Si no se halló por id, intentar por descripciÃ³n o cÃ³digo (respaldo)
+            // 2) Por TEXTO EXACTO
+            if (!opt && descripcionEdit) {
+                opt = productOptions.find(o => (o.textContent || '').trim() === descripcionEdit);
+            }
+            // 3) Por texto normalizado
+            if (!opt && descripcionEdit) {
+                opt = productOptions.find(o => normalizar(o.textContent) === normalizar(descripcionEdit));
+            }
+            // 4) Por texto construido "codigo - descripcion"
+            if (!opt && descripcionEdit) {
+                const fullText = (codigoEdit ? codigoEdit + ' - ' : '') + descripcionEdit;
+                opt = productOptions.find(o => (o.textContent || '').trim() === fullText.trim());
+            }
+            // 5) Por CÓDIGO solo si hay UNA única coincidencia
+            if (!opt && codigoEdit) {
+                const codigoMatches = productOptions.filter(o => (o.getAttribute('data-codigo') || '').trim() === codigoEdit);
+                if (codigoMatches.length === 1) {
+                    opt = codigoMatches[0];
+                }
+            }
+            // 6) Último recurso: crear una opción sintética con el texto de la fila.
+            //    Se usa un valor ÚNICO no colisionante para no elegir otro producto por el id.
             if (!opt) {
-                opt = productOptions.find(o => 
-                    o.textContent.trim() === descripcionEdit || 
-                    (o.getAttribute('data-codigo') && o.getAttribute('data-codigo').trim() === codigoEdit)
-                );
+                const optNuevo = document.createElement('option');
+                optNuevo.value = '__synth__' + String(idx) + '__' + (codigoEdit || '');
+                optNuevo.text = (codigoEdit ? codigoEdit + ' - ' : '') + descripcionEdit;
+                optNuevo.setAttribute('data-codigo', codigoEdit);
+                producto.appendChild(optNuevo);
+                if (window.choicesInstances && window.choicesInstances['producto']) {
+                    try {
+                        window.choicesInstances['producto'].setChoices(
+                            [{ value: optNuevo.value, label: optNuevo.text }],
+                            'value', 'label', false
+                        );
+                    } catch(e) { /* ignore */ }
+                }
+                opt = optNuevo;
             }
 
             if (opt) {

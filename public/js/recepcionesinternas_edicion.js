@@ -612,149 +612,90 @@ try {
         try { window._dbg && (window._dbg.lastLoad = {when: Date.now(), idx: idx, item: JSON.parse(JSON.stringify(item))}); } catch(e){}
         if (!item) return;
 
-        // Seleccionar el producto en el select buscando por DESCRIPCIÓN, id o código.
-        // FIX (2026-08-27): La lógica anterior priorizaba la coincidencia por id derivado
-        // del backend. Como recepciones_internas_productos sólo guarda CodigoProducto y
-        // DescripcionProducto, el ProductoId se obtiene con una subconsulta LIMIT 1 por
-        // código; si hay varios productos con el mismo código (ej: código '0' con varias
-        // descripciones), ese id puede apuntar a otro producto. Por eso la fuente fiable
-        // es la DESCRIPCIÓN guardada en el vale. Además se recupera el producto que
-        // rebuildProductoSelectEdit excluye del select por estar ya en la grilla.
+        // Reconstruir el select incluyendo el producto de la fila en edición (no excluirlo),
+        // para que el producto de la fila seleccionada esté disponible y pueda mostrarse en el select.
+        // (Mismo fix aplicado en Despachos Internos y Despachos Externos: sin esto, el producto
+        //  queda excluido del select por rebuildProductoSelectEdit y el select muestra otro
+        //  producto al actualizar la fila.)
+        try { rebuildProductoSelectEdit(idx); } catch(e) { console.warn('[Edición] error rebuildProductoSelectEdit en cargarFilaEnControlesEdit', e); }
+
+        // Seleccionar el producto en el select. IMPORTANTE: item.productoId NO es confiable
+        // (el backend lo recalcula por código con LIMIT 1). Se prioriza el TEXTO de la fila.
         const productoSelect = document.getElementById('producto');
         if (productoSelect) {
             const opts = Array.from(productoSelect.options);
             let opt = null;
-            let selectModificado = false;
 
-            const idStr = item.productoId ? String(item.productoId) : '';
-            const itemProdNorm = String(item.producto || '').trim().toLowerCase();
-            const itemSinPrefijo = itemProdNorm.replace(/^\d+\s*-\s*/, '');
-            const itemCodigoNorm = String(item.codigo || '').trim();
+            const codigoFila = (item.codigo && String(item.codigo).trim() !== '') ? String(item.codigo).trim() : '';
+            const textoFila = (item.producto && String(item.producto).trim() !== '') ? String(item.producto).trim() : '';
+            // Normaliza texto para tolerar diferencias de espacios/mayúsculas
+            const normalizar = s => String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
 
-            // 1) Buscar el mejor candidato en el catálogo maestro (window.productosData),
-            //    que no está filtrado por la grilla. Prioridad: DESCRIPCIÓN normalizada
-            //    (sin el prefijo "CÓDIGO - "), luego id, luego código.
-            const catalogo = window.productosData || [];
-            let maestro = null;
-            if (itemSinPrefijo) {
-                maestro = catalogo.find(p => {
-                    const cod = (p.Codigo !== undefined && p.Codigo !== null ? String(p.Codigo) : '').trim();
-                    const fullText = (cod ? cod + ' - ' : '') + (p.Producto || p.DescripcionProducto || p.Nombre || '');
-                    return fullText.trim().toLowerCase().replace(/^\d+\s*-\s*/, '') === itemSinPrefijo;
-                });
+            // 1) Buscar por TEXTO EXACTO (DescripcionProducto guardada == text del option).
+            if (textoFila) {
+                opt = opts.find(o => (o.textContent || '').trim() === textoFila);
             }
-            if (!maestro && idStr) {
-                maestro = catalogo.find(p => p.Id !== undefined && String(p.Id) === idStr);
+            // 2) Buscar por texto normalizado (tolera espacios/mayúsculas)
+            if (!opt && textoFila) {
+                opt = opts.find(o => normalizar(o.textContent) === normalizar(textoFila));
             }
-            if (!maestro && itemCodigoNorm !== '') {
-                maestro = catalogo.find(p => {
-                    const cod = (p.Codigo !== undefined && p.Codigo !== null ? String(p.Codigo) : '').trim();
-                    return cod === itemCodigoNorm;
-                });
+            // 3) Buscar por texto construido "codigo - producto" (por si la fila guarda solo el nombre)
+            if (!opt && textoFila) {
+                const fullText = (codigoFila ? codigoFila + ' - ' : '') + textoFila;
+                opt = opts.find(o => (o.textContent || '').trim() === fullText.trim());
             }
-
-            // 2) Si hay maestro, buscar su option en el select actual; si fue excluido
-            //    (por estar en la grilla), re-agregarlo para poder seleccionarlo.
-            if (maestro) {
-                const mid = String(maestro.Id);
-                opt = opts.find(o => String(o.value || '') === mid);
-                if (!opt) {
-                    const codigoOpt = (maestro.Codigo !== undefined && maestro.Codigo !== null ? String(maestro.Codigo) : '').trim();
-                    const fullText = (codigoOpt ? codigoOpt + ' - ' : '') + (maestro.Producto || maestro.DescripcionProducto || maestro.Nombre || '');
-                    const optNuevo = document.createElement('option');
-                    optNuevo.value = maestro.Id;
-                    optNuevo.text = fullText;
-                    optNuevo.setAttribute('data-codigo', codigoOpt);
-                    if (maestro.UnidadMedida) optNuevo.setAttribute('data-unidadmedida', maestro.UnidadMedida);
-                    productoSelect.appendChild(optNuevo);
-                    selectModificado = true;
-                    opt = optNuevo;
-                }
-            } else if (idStr) {
-                // Producto sin registro en el maestro: buscar por id en el select o
-                // crear una opción sintética con los datos de la fila.
-                opt = opts.find(o => String(o.value || '') === idStr);
-                if (!opt) {
-                    const optNuevo = document.createElement('option');
-                    optNuevo.value = idStr;
-                    optNuevo.text = item.producto || idStr;
-                    optNuevo.setAttribute('data-codigo', itemCodigoNorm);
-                    if (item.unidadMedida) optNuevo.setAttribute('data-unidadmedida', item.unidadMedida);
-                    const existeTexto = Array.from(productoSelect.options).some(o => (o.textContent || '').trim().toLowerCase() === String(item.producto || '').trim().toLowerCase());
-                    if (!existeTexto) {
-                        productoSelect.appendChild(optNuevo);
-                        selectModificado = true;
-                        opt = optNuevo;
-                    } else {
-                        opt = Array.from(productoSelect.options).find(o => (o.textContent || '').trim().toLowerCase() === String(item.producto || '').trim().toLowerCase());
-                    }
+            // 4) Buscar por CÓDIGO solo si hay UNA única coincidencia (si el código está
+            //    duplicado no se puede decidir por código: elegiría el producto equivocado).
+            if (!opt && codigoFila) {
+                const codigoMatches = opts.filter(o => (o.getAttribute('data-codigo') || '').trim() === codigoFila);
+                if (codigoMatches.length === 1) {
+                    opt = codigoMatches[0];
                 }
             }
-
-            // 3) Último recurso: buscar directamente en las opciones del select por
-            //    texto normalizado o por código (incluye el código '0').
+            // 5) Último recurso: si el producto de la fila no está en el select, agregarlo
             if (!opt) {
-                opt = opts.find(o => {
-                    const oText = (o.textContent || '').trim().toLowerCase();
-                    return oText === itemProdNorm || (itemSinPrefijo && oText.replace(/^\d+\s*-\s*/, '') === itemSinPrefijo);
-                });
-                if (!opt && itemCodigoNorm !== '') {
-                    opt = opts.find(o => (o.getAttribute('data-codigo') || '').trim() === itemCodigoNorm);
+                opt = document.createElement('option');
+                // Valor ÚNICO no numérico para no colisionar con el Id de otro producto maestro.
+                // item.productoId viene de una subconsulta LIMIT 1 por código y puede apuntar a
+                // otro producto (p.ej. 19003521 -> Id 8 = ESTANDAR en lugar de NARANJA).
+                opt.value = '__synth__' + String(idx) + '__' + (codigoFila || '');
+                opt.text = (codigoFila ? codigoFila + ' - ' : '') + textoFila;
+                opt.setAttribute('data-codigo', codigoFila);
+                if (item.unidadMedida) opt.setAttribute('data-unidadmedida', item.unidadMedida);
+                productoSelect.appendChild(opt);
+                if (window.choicesInstances && window.choicesInstances['producto']) {
+                    try {
+                        window.choicesInstances['producto'].setChoices(
+                            [{ value: opt.value, label: opt.text }],
+                            'value', 'label', false
+                        );
+                    } catch(e) { /* ignore */ }
                 }
             }
 
             if (opt) {
-                // Si agregamos opciones nuevas al select nativo, recrear Choices para
-                // que las reconozca (conservando los data-* en los options nativos)
-                if (selectModificado && window.choicesInstances && window.choicesInstances['producto']) {
-                    try {
-                        window.choicesInstances['producto'].destroy();
-                        window.choicesInstances['producto'] = new Choices(productoSelect, {
-                            searchEnabled: true,
-                            searchChoices: true,
-                            shouldSort: false,
-                            itemSelectText: '',
-                            allowHTML: false,
-                            renderChoiceLimit: -1,
-                            searchResultLimit: 100,
-                            position: 'auto',
-                            placeholder: true,
-                            placeholderValue: productoSelect.options[0]?.text || 'Seleccione',
-                            noResultsText: 'No se encontraron resultados',
-                            removeItemButton: false,
-                            duplicateItemsAllowed: false,
-                        });
-                    } catch(e) { /* ignore */ }
-                }
                 productoSelect.value = opt.value;
                 if (window.choicesInstances && window.choicesInstances['producto']) {
-                    // Set choice and re-run wrap function several times with delays
+                    // Set choice y reaplicar wrapping (con reintentos por si Choices tarda en renderizar)
                     setTimeout(()=> {
                         try { window.choicesInstances['producto'].setChoiceByValue(String(opt.value)); } catch(e){}
-                        // Aplicar wrapping después de cargar el producto
-                        setTimeout(() => {
-                            try {
-                                // Usar updateAllChoicesWrap si está disponible (más confiable)
-                                if (typeof window.updateAllChoicesWrap === 'function') {
-                                    window.updateAllChoicesWrap();
-                                } else if (typeof window.updateProductoChoiceWrap === 'function') {
-                                    window.updateProductoChoiceWrap();
-                                }
-                            } catch(e){}
-                        }, 50);
-                    }, 100);
-                    // Forzar que la etiqueta visible muestre la descripción tal como está en la grilla
-                    try {
-                        setTimeout(() => {
-                            try {
-                                const choicesEl = document.querySelector('#producto + .choices');
-                                const visible = choicesEl && choicesEl.querySelector('.choices__list--single .choices__item');
-                                if (visible && item.producto) {
-                                    visible.textContent = item.producto;
-                                }
-                            } catch (e) {}
-                        }, 120);
-                    } catch(e) {}
+                        try {
+                            if (typeof window.updateAllChoicesWrap === 'function') {
+                                window.updateAllChoicesWrap();
+                            } else if (typeof window.updateProductoChoiceWrap === 'function') {
+                                window.updateProductoChoiceWrap();
+                            }
+                        } catch(e){}
+                    }, 30);
+                    setTimeout(()=> {
+                        try {
+                            if (typeof window.updateAllChoicesWrap === 'function') {
+                                window.updateAllChoicesWrap();
+                            } else if (typeof window.updateProductoChoiceWrap === 'function') {
+                                window.updateProductoChoiceWrap();
+                            }
+                        } catch(e){}
+                    }, 200);
                 }
             }
         }
@@ -1563,13 +1504,17 @@ try {
         });
     }
 
-    // Reconstruir el select de productos excluyendo los que ya están en la grilla
-    function rebuildProductoSelectEdit() {
+    // Reconstruir el select de productos excluyendo los que ya están en la grilla.
+    // Si se pasa skipIndex, no se excluye la fila que se está editando para que su
+    // producto siga disponible en el select (mismo fix aplicado en Despachos Internos/Externos).
+    function rebuildProductoSelectEdit(skipIndex) {
         const productoSelect = document.getElementById('producto');
         if (!productoSelect) return;
         
         const descripcionesEnGrilla = new Set();
-        datosGrilla.forEach(item => {
+        datosGrilla.forEach((item, index) => {
+            // No excluir la fila que se está editando para que su producto siga disponible en el select
+            if (typeof skipIndex !== 'undefined' && skipIndex !== null && index === skipIndex) return;
             if (item.producto) descripcionesEnGrilla.add(String(item.producto).trim());
         });
         
